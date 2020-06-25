@@ -1,0 +1,32 @@
+{
+    "id": "D1627AE3",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1593106884796.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "expression": "nasa_noIP %>% count(host)",
+        "caption": "nasa_noIP %>% count(host)",
+        "totalObservations": 63,
+        "displayedObservations": 63,
+        "variables": 2,
+        "cacheKey": "C17E8C52",
+        "object": "",
+        "environment": "_rs_no_env",
+        "contentUrl": "grid_resource/gridviewer.html?env=_rs_no_env&obj=&cache_key=C17E8C52&max_cols=50",
+        "preview": 0
+    },
+    "folds": "",
+    "lastKnownWriteTime": 8103230749691701364,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1593106884796,
+    "read_only": false,
+    "read_only_alternatives": []
+}

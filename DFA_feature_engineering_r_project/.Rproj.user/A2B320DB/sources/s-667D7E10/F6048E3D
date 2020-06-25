@@ -1,0 +1,32 @@
+{
+    "id": "F6048E3D",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1593107156395.0,
+    "source_on_save": false,
+    "relative_order": 10,
+    "properties": {
+        "expression": "dk",
+        "caption": "dk",
+        "totalObservations": "30",
+        "displayedObservations": "30",
+        "variables": "2",
+        "cacheKey": "B5247A5D",
+        "object": "dk",
+        "environment": "",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=dk&cache_key=B5247A5D&max_cols=50",
+        "preview": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": -5075211493860319979,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1593107156395,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -92,7 +92,10 @@ nasa_noIP <-
 
 colnames(nasa_noIP)[6] <- "site_type"
 
+nasa_noIP_for_automata <-
+  nasa_noIP[,c(1:4)]
 
+write.csv(nasa_noIP_for_automata, "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/nasa_input.csv", row.names = FALSE)
 
 # Visualizations
 nasa %>% ggplot(aes(x=day)) +
