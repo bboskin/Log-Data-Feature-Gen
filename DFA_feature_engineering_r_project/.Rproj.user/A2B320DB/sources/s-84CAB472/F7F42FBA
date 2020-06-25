@@ -1,0 +1,32 @@
+{
+    "id": "F7F42FBA",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1593040719276.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "expression": "call_train",
+        "caption": "call_train",
+        "totalObservations": "11",
+        "displayedObservations": "11",
+        "variables": "102",
+        "cacheKey": "8ECCF02D",
+        "object": "call_train",
+        "environment": "",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=call_train&cache_key=8ECCF02D&max_cols=50",
+        "preview": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 140461391144704,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1593040719276,
+    "read_only": false,
+    "read_only_alternatives": []
+}

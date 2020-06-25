@@ -1,9 +1,9 @@
 {
     "id": "73FD64B4",
-    "path": "~/Documents/software/coding/R/DFA_feature_engineering/nasa_server_logs.R",
+    "path": "~/Documents/GitHub/Log-Data-Feature-Gen/DFA_feature_engineering_r_project/nasa_server_logs.R",
     "project_path": "nasa_server_logs.R",
     "type": "r_source",
-    "hash": "845450583",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1593026244207.0,
@@ -11,15 +11,15 @@
     "relative_order": 1,
     "properties": {
         "tempName": "Untitled1",
-        "cursorPosition": "14,27",
+        "cursorPosition": "1,16",
         "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1593027761,
+    "lastKnownWriteTime": 1593034926,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1593027761731,
+    "last_content_update": 1593034926968,
     "read_only": false,
     "read_only_alternatives": []
 }

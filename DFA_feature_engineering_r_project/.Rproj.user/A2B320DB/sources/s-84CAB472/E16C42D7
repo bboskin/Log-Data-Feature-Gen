@@ -1,0 +1,32 @@
+{
+    "id": "E16C42D7",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1593040674744.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "expression": "calls",
+        "caption": "calls",
+        "totalObservations": "16",
+        "displayedObservations": "16",
+        "variables": "103",
+        "cacheKey": "36E3015E",
+        "object": "calls",
+        "environment": "",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=calls&cache_key=36E3015E&max_cols=50",
+        "preview": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 140461369018592,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1593040674744,
+    "read_only": false,
+    "read_only_alternatives": []
+}
