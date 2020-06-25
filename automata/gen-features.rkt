@@ -301,7 +301,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-AUTOMATON
   (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
 
-(define NASA-FEATURES (time (take-words NASA-AUTOMATON 500)))
+(define NASA-FEATURES (time (take-words NASA-AUTOMATON 1000)))
 
 (define NASA-TABLE
   (cons (cons 'name(build-list
