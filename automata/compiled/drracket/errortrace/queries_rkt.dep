@@ -1,0 +1,1 @@
+("7.1" ("7aadffe2a9c455cb46562f78c436d20b03cc8412" . "fd590ede275e6490002a0fba83fa07504117572e") #"/Users/benboskin/Desktop/Log-Data-Feature-Gen/automata/basics.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))

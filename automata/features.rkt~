@@ -6,8 +6,6 @@
   "G-to-M.rkt"
   "grammars.rkt")
 
-(provide (all-defined-out))
-
 
 #|
 Relevant datatypes as we progress through our function.
@@ -382,8 +380,6 @@ cpu time: 853 real time: 857 gc time: 82 -- on avg was not as
 
 
 (define WORDS (take-words Feature 500))
-
-#;
 (begin (define V (map (λ (x) (displayln x)) WORDS))
        (displayln "Done."))
 
