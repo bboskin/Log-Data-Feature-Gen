@@ -296,13 +296,12 @@ and which determines the meaning for the rows of the final CSV.
     (time string)
     (day string)))
 
-
 (define NASA-DATA (read-logs NASA-DESC "../input-automata-csv/nasa_input.csv"))
 (define NASA-KEYS (foldr (λ (x a) (set-cons (list-ref x 1) a)) '() NASA-DATA))
 (define NASA-AUTOMATON
   (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
 
-(define NASA-FEATURES (take-words NASA-AUTOMATON 100))
+(define NASA-FEATURES (time (take-words NASA-AUTOMATON 500)))
 
 (define NASA-TABLE
   (cons (cons 'name(build-list
@@ -313,5 +312,7 @@ and which determines the meaning for the rows of the final CSV.
 
 
 (display-table NASA-TABLE)
+
+
 
 
