@@ -69,7 +69,8 @@ and which determines the meaning for the rows of the final CSV.
 (define REDUCE-FNS
   `((+ ,(λ (x) (foldr + 0 x)) Nats Nat)
     (* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (mean ,(λ (xs) (if (null? xs) 0 (/ (foldr + 0 xs) (length xs))))
+    (mean ,(λ (xs)
+             (if (null? xs) 0 (/ (foldr + 0 xs) (length xs))))
           Nats Nat)
     (length ,length Set Nat)
     (set ,(λ (x) (foldr set-cons '() x)) Set Set)))
@@ -102,8 +103,8 @@ and which determines the meaning for the rows of the final CSV.
                (Map GNats ReduceNats->Nat)
                (Map GSet ReduceSet->Nat))
       (GSet -> Select
-            (Map GSet ReduceSet->Set)
-            (Map GNats ReduceSet->Set))
+            (#;Map GSet ReduceSet->Set)
+            (#;Map GNats ReduceSet->Set))
       (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
       (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
       (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
@@ -167,7 +168,7 @@ and which determines the meaning for the rows of the final CSV.
 
 ;; Filter : Eid x CDRs -> CDRs
 (define ((Filter desc) f t)
-  (let ((k (get-key-loc desc)))
+  (let ((k (add1 (get-key-loc desc))))
     (filter (λ (x) (equal? (list-ref x k) f)) t)))
 
 ;; Map : CDRTree -> CDRTree
@@ -202,13 +203,19 @@ and which determines the meaning for the rows of the final CSV.
     [`(,(? Label? e) . ,(? Value? v)) (f `(,v))]
     [`(,(? Label? e) ,(? Label? e2) ,(? Value? v) ...) (f v)]
     [`(,(? Label? e)
+       (,(? Label? l) ,(? Value? v) ,vs ...))
+     (f (cons v vs))]
+    [`(,(? Label? e)
        (,(? Label? l) ,(? Value? v) ,vs ...)
        ...)
-     (map f (cons v vs))]
+     `(,e . ,(map f (map cdr (cdr o))))]
+    [`(,(? Label? e)
+       (,(? Label? l1) ,(? Label? l2) ,(? Value? vs) ...))
+     `(,e . ,(f vs))]
     [`(,(? Label? e)
        (,(? Label? l1) ,(? Label? l2) ,(? Value? vs) ...)
        ...)
-     `(,e . ,(map (λ (x) (f (cddr x))) (cdr o)))]
+     `(,e . ,(map f (map cddr (cdr o))))]
     [`(,(? Label? e) . ,T) `(,e . ,((Reduce f) T))]
     [`(,T ...) (map (Reduce f) T)])) 
 
@@ -249,7 +256,7 @@ and which determines the meaning for the rows of the final CSV.
     [else (error (format "Invalid word ~s" w))]))
 
 (define (apply-words Log desc Table ws)
-  (map (λ (x) (begin ((apply-word Log desc) x Table))) ws))
+  (map (λ (x) ((apply-word Log desc) x Table)) ws))
 
 (define ((eval desc Table) w) ((apply-word desc) w Table))
 
@@ -270,7 +277,10 @@ and which determines the meaning for the rows of the final CSV.
    #t
    ws))
 
-
+(define (remove-inf table)
+  (map
+   (λ (x) (map (λ (x) (if (equal? x +inf.0) 9999999 x)) x))
+   table))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -292,9 +302,10 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-FEATURES (take-words NASA-AUTOMATON 100))
 
 (define NASA-TABLE
-  (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES))
+  (remove-inf
+   (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES)))
 
-#;
+
 (display-table NASA-TABLE)
 
 
