@@ -294,6 +294,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-TABLE
   (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES))
 
+#;
 (display-table NASA-TABLE)
 
 
