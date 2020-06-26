@@ -1,0 +1,16 @@
+library(tidymodels)
+
+nasa_rf_mod <-
+  rand_forest(trees = 150) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+nasa_glm_mod <-
+  logistic_reg() %>%
+  set_engine("glm")
+
+nasa_ranger_mod <-
+  rand_forest(trees = 100) %>%
+  set_engine("ranger") %>%
+  set_mode("classification")
+

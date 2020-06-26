@@ -1,6 +1,8 @@
 library(tidyverse)
 library(anytime)
 library(Hmisc)
+library(tidymodels)
+
 
 nasa <- read_csv("/Users/Jack/Documents/data.csv")
 
@@ -23,37 +25,31 @@ edu_net_sites <- edu_net_sites %>%
 nasa_edu_net <-
   data.frame(nasa_edu_net, edu_net_sites[,2])
 
-nasa_edu_net <- nasa_edu_net %>%
-  mutate(time = anytime(time)) %>%
-  mutate(day = weekdays(as.Date(time)))
-
-nasa_edu_net <- nasa_edu_net %>%
-  select(-X1) 
-
-colnames(nasa_edu_net)[7] <- "site_type"
-colnames(nasa_edu_net)[8] <- "to_delete"
-
-nasa_edu_net <- nasa_edu_net %>%
-  select(-to_delete)
-
-nasa_edu_net<- 
+nasa_edu_net <- 
   nasa_edu_net %>%
+  mutate(time = anytime(time)) %>%
+  mutate(day = weekdays(as.Date(time))) %>%
   mutate(date = as.Date(time)) %>%
+  select(-X1) %>%
   mutate(time = strftime(time, "%H:%M:%S"))
 
-nasa_edu_net <- nasa_edu_net[,c(1,4,6,9,2,8,3,5,7)]
+nasa_edu_net$response<-
+  recode(nasa_edu_net$response, "200" = "ok", "302" = "found", "304" = "not-modified", "404" = "not-found")
 
-nasa_edu_net$response<-recode(nasa_edu_net$response, "200" = "ok", "302" = "found", "304" = "not-modified", "404" = "not-found")
+colnames(nasa_edu_net)[7] <- "site_type"
+
+nasa_edu_net <- nasa_edu_net[,c("host", "bytes", "date", "time", "day", "url", "method", "response", "site_type")]
+
+
+
 
 
 # Modified dataset --------------------------------------------------------
 
 nasa_edu_net_filtered <- nasa_edu_net %>%
-  select(-method, -url) %>%
-  mutate(response = as.factor(response))
+  select(-method, -url, - response)
 
 nasa_edu_net_filtered$time<-as.numeric(substr(nasa_edu_net_filtered$time,1, nchar(nasa_edu_net_filtered$time)-6))
-
 
 nasa_edu_net_filtered$date<-format(as.Date(nasa_edu_net_filtered$date), "%j")
 
@@ -69,12 +65,12 @@ nasa_edu_net_filtered %>%
   ggplot(aes(time, total_bytes)) +
   geom_line()
 
-nasa_edu_net_filtered %>% ggplot(aes(time)) +
+nasa_edu_net_filtered %>% ggplot(aes(time, fill = site_type)) +
   geom_histogram(bins=23) +
   facet_grid(~site_type) +
   ggtitle("Time of Request, Faceted by Site Type")
 
-nasa_edu_net_filtered %>% ggplot(aes(day)) +
+nasa_edu_net_filtered %>% ggplot(aes(day, fill = response)) +
   geom_bar() +
   facet_grid(~site_type) +
   ggtitle("Day of Request, Faceted by Site Type")
@@ -89,13 +85,43 @@ nasa_edu_net_filtered %>% ggplot(aes(bytes)) +
   facet_grid(~site_type) +
   ggtitle("Amount of Bytes of Request, Faceted by Site Type")
 
-nasa_edu_net_filtered %>% ggplot(aes(date)) +
+nasa_edu_net_filtered %>% ggplot(aes(date, fill = site_type)) +
   geom_histogram() +
   facet_grid(~site_type) +
   ggtitle("Date of Request, Faceted by Site Type")
 
 
+# Making high quality smaller dataset -------------------------------------
+
+set.seed(1423)
+fiveK_host_names<-
+  training(
+    initial_split(
+      nasa_edu_net_filtered, 
+      prop = 0.01, 
+      strata = site_type)) %>%
+  count(host)
+
+nasa_edu_net_fiveK<-merge(fiveK_host_names, nasa_edu_net_filtered, by="host") 
+
+nasa_edu_net_fiveK <-
+  nasa_edu_net_fiveK %>%
+  select(-n)
+
+nasa_edu_net_fiveK<-
+  nasa_edu_net_fiveK %>%
+  count(host) %>%
+  filter(n<10)
+
+nasa_edu_net_fiveK<-merge(nasa_edu_net_fiveK, nasa_edu_net_filtered, by="host") 
+
+nasa_edu_net_fiveK%>%
+  select(-n) %>%
+  count(site_type)
+
 # Writing to csv ----------------------------------------------------------
 
-write.csv(nasa_edu_net_filtered[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/nasa-edu-net.csv", row.names = FALSE)
 
+write.csv(nasa_edu_net_filtered[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/nasa-edu-net.csv", row.names = FALSE)
+write.csv(small_nasa_edu_net[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/small-nasa-edu-net.csv", row.names = FALSE)
+write.csv(nasa_edu_net_fiveK)
