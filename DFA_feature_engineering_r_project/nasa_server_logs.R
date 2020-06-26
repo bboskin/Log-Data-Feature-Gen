@@ -1,6 +1,10 @@
 library(tidyverse)
 library(anytime)
 library(Hmisc)
+library(lubridate)
+library(tibbletime)
+
+#PAPER THAT USES THIS DATA: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.41.6586&rep=rep1&type=pdf
 
 # Load data
 nasa <- read_csv("/Users/Jack/Documents/data.csv")
@@ -26,6 +30,9 @@ nasa <- merge(nasa,
               by = "host")
 
 nasa_noIP<-nasa[grep("\\D$", nasa$host),]
+
+
+# Adding site_type --------------------------------------------------------
 
 dk <-
   data.frame(grep("dk$", nasa_noIP$host), rep("dk", length(grep("dk$", nasa_noIP$host))))
@@ -94,6 +101,43 @@ colnames(nasa_noIP)[6] <- "site_type"
 
 
 
+
+# Adding time of day ------------------------------------------------------
+
+nasa_noIP<- 
+  nasa_noIP %>%
+  mutate(date = as.Date(time)) %>%
+  mutate(time = strftime(time, "%H:%M:%S"))
+
+nasa_noIP <-
+  nasa_noIP[,c(1,2,7,3,4,6)]
+
+nasa_noIP<-
+  nasa_noIP[order(nasa_noIP$date)]
+
+nasa_tbl_time_date<-as_tbl_time(nasa_noIP, index = date)
+nasa_tbl_time_date<-nasa_tbl_time_date[order(nasa_tbl_time_date$date),]
+
+
+filter_time(nasa_tbl_time, time_formula = '1' ~ '12:00:00')
+
+write.csv(nasa_noIP, "/Users/Jack/Desktop/Nasa_date_time_split.csv")
+
+
+# Grouping nasa_noIP ------------------------------------------------------
+
+nasa_noIP_grouped <- nasa_noIP %>%
+  group_by(host) %>%
+  summarise(site_type = first(site_type))
+
+
+# For automata ------------------------------------------------------------
+
+nasa_noIP_for_automata <-
+  nasa_noIP[,c(1:4)]
+
+write.csv(nasa_noIP_for_automata, "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/nasa_input.csv", row.names = FALSE)
+
 # Visualizations
-nasa %>% ggplot(aes(x=day)) +
-  geom_bar()
+nasa_noIP %>% ggplot(aes(x=time)) +
+  geom_histogram()
