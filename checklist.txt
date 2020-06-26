@@ -6,6 +6,7 @@ We want to figure out what tweakable variables are most
 useful, and in what contexts.
 
 are more features useful?
+can we use the same feature for different predictions?
 
 
 Tweaks on Jack's end:
