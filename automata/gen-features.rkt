@@ -32,6 +32,21 @@
     (next-row)
     (csv-map (λ (x) (cons id (map format-element x (map cadr (cdr desc))))) next-row)))
 
+(define (hash-logs keys k logs H)
+  (let loop ((logs logs)
+             (keys keys)
+             (ans H))
+(cond
+  [(null? keys) ans]
+  [else (let ((i (car keys))
+              (keys (cdr keys)))
+          (let ((e (hash-ref ans i (λ () #f)))
+                (logs-with (filter (λ (x) (equal? i (list-ref x k))) logs))
+                (logs-without (filter (λ (x) (not (equal? i (list-ref x k)))) logs)))
+            (let ((ans (loop logs-without keys ans)))
+              (if e
+                  (hash-set ans i (append e logs-with))
+                  (hash-set ans i logs-with)))))])))
 #|
 
 In order to define how to read a datatype,
@@ -163,7 +178,7 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 (define (gen-player-automaton desc table name)
-  (make-grammar-full desc table name))
+  (make-grammar-micro desc table name))
 
 (define (set-features-to-key features name)
   (map (λ (x) (cons name (cdr x))) features))
@@ -311,11 +326,11 @@ and which determines the meaning for the rows of the final CSV.
 
 (define ((eval desc Table) w) ((apply-word desc) w Table))
 
-(define (make-table log keys desc table features)
+(define (make-table log keys desc table features H)
   (map
    (λ (key)
      (let ((fs (set-features-to-key features key)))
-       (cons key (apply-words log desc table fs))))
+       (cons key (apply-words log desc (hash-ref H key (λ () '())) fs))))
    keys))
 
 (define (test-apply-words Log desc Table ws)
@@ -387,7 +402,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-DATA
   (read-logs
     NASA-EDU-DESC
-   "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
+   "../input-automata-csv/nasa-edu-net-first-eighth.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
@@ -396,7 +411,9 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
 (define NASA-EDU-FEATURES
-  (take-words NASA-EDU-AUTOMATON 1000))
+  (take-words NASA-EDU-AUTOMATON 100))
+(define NASA-EDU-HASH
+  (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
 
 (define NASA-EDU-TABLE
@@ -407,8 +424,8 @@ and which determines the meaning for the rows of the final CSV.
          NASA-EDU-KEYS
          NASA-EDU-DESC
          NASA-EDU-DATA
-         NASA-EDU-FEATURES))))
-
+         NASA-EDU-FEATURES
+         NASA-EDU-HASH))))
 
 (display-table NASA-EDU-TABLE)
 
