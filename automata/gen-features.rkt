@@ -163,7 +163,7 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 (define (gen-player-automaton desc table name)
-  (make-grammar-micro desc table name))
+  (make-grammar-full desc table name))
 
 (define (set-features-to-key features name)
   (map (λ (x) (cons name (cdr x))) features))
@@ -387,8 +387,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-DATA
   (read-logs
     NASA-EDU-DESC
-   #; "../input-automata-csv/small-nasa-edu-net.csv"
-    "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
+   "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
