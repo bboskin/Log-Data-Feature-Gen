@@ -66,12 +66,30 @@ and which determines the meaning for the rows of the final CSV.
 
 ;;; reductions w/ type info
 
+(define (count-occurrences x xs)
+  (length (filter (λ (y) (equal? x y)) xs)))
+
+(define (mode xs)
+  (caar (sort (map (λ (x) (cons x (count-occurrences x xs)))
+                  xs)
+             (λ (x y)
+               (> (cdr x) (cdr y))))))
+
 (define REDUCE-FNS
   `((+ ,(λ (x) (foldr + 0 x)) Nats Nat)
     (* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (mean ,(λ (xs)
-             (if (null? xs) 0 (/(foldr + 0 xs) (length xs))))
+    (max ,(λ (xs)
+             (if (null? xs) 0 (foldr max 0 xs)))
           Nats Nat)
+    (mean ,(λ (xs)
+             (if (null? xs) 0 (/ (foldr + 0 xs) (length xs))))
+          Nats Nat)
+    (median ,(λ (xs)
+               (let ((k (length xs))
+                     (xs (sort xs <)))
+                 (list-ref xs (floor (/ k 2)))))
+            Nats Nat)
+    (mode ,mode Nats Nat)    
     (length ,length Set Nat)
     (set ,(λ (x) (foldr set-cons '() x)) Set Set)))
 
@@ -145,7 +163,7 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 (define (gen-player-automaton desc table name)
-  (make-grammar-full desc table name))
+  (make-grammar-micro desc table name))
 
 (define (set-features-to-key features name)
   (map (λ (x) (cons name (cdr x))) features))
@@ -373,13 +391,23 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
-  (gen-player-automaton NASA-EDU-DESC NASA-EDU-DATA (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES (take-words NASA-EDU-AUTOMATON 1000))
+  (gen-player-automaton
+   NASA-EDU-DESC
+   NASA-EDU-DATA
+   (car NASA-EDU-KEYS)))
+(define NASA-EDU-FEATURES
+  (take-words NASA-EDU-AUTOMATON 100))
 
 
 (define NASA-EDU-TABLE
   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
-    . ,(remove-inf (make-table 'NASA-EDU NASA-EDU-KEYS NASA-EDU-DESC NASA-EDU-DATA NASA-EDU-FEATURES))))
+    . ,(remove-inf
+        (make-table
+         'NASA-EDU
+         NASA-EDU-KEYS
+         NASA-EDU-DESC
+         NASA-EDU-DATA
+         NASA-EDU-FEATURES))))
 
 
 (display-table NASA-EDU-TABLE)

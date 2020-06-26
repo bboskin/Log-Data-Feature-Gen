@@ -1,0 +1,41 @@
+Questions:
+
+what are we trying to predict? trying to do?
+
+We want to figure out what tweakable variables are most
+useful, and in what contexts.
+
+are more features useful?
+
+
+Tweaks on Jack's end:
+  -- number of unique hostnames
+  -- adding more variables in the input automaton dataset
+  -- more to come
+
+
+Tweaks on Ben's end:
+  -- grammars
+  -- oplist in gramamrs
+
+
+
+
+Next Steps:
+
+-- experiment with grammar a) stucture b) functions available
+-- possibly implement feature application in R
+-- 
+
+
+Later Steps:
+
+
+Social media data
+Use unsupervised algorithms to classify datasets
+
+
+
+
+Rules:
+No Python
