@@ -387,7 +387,8 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-DATA
   (read-logs
     NASA-EDU-DESC
-    "../input-automata-csv/small-nasa-edu-net.csv"))
+   #; "../input-automata-csv/small-nasa-edu-net.csv"
+    "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
@@ -396,7 +397,7 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
 (define NASA-EDU-FEATURES
-  (take-words NASA-EDU-AUTOMATON 100))
+  (take-words NASA-EDU-AUTOMATON 1000))
 
 
 (define NASA-EDU-TABLE
@@ -411,3 +412,6 @@ and which determines the meaning for the rows of the final CSV.
 
 
 (display-table NASA-EDU-TABLE)
+
+
+
