@@ -1,3 +1,8 @@
+cpu time: 7 real time: 7 gc time: 0
+cpu time: 6 real time: 6 gc time: 0
+cpu time: 0 real time: 0 gc time: 0
+cpu time: 2 real time: 2 gc time: 0
+cpu time: 505 real time: 506 gc time: 82
 name,F0,F1,F2,F3,F4,F5,F6,F7,F8
 198.40.16.108.artic.edu,11,11,11,198,198,198,3635,3635,3635
 206dos104.flint.umich.edu,9,81,18,187,34969,374,602,0,1204
