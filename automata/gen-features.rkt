@@ -91,7 +91,46 @@ and which determines the meaning for the rows of the final CSV.
 
 (define (mapquote ls) (map (λ (x) `',x) ls))
 
-(define (make-grammar desc table i)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; a handful of grammars
+
+(define (make-grammar-micro desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc)))))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature
+         -> (',i Select ReduceNats->Nat))
+        (Select
+         -> . ,(mapquote (map (λ (x) (symbol-append 'select x))
+                              NatFields)))
+        (ReduceNats->Nat
+         -> . ,(map (λ (x) `',(symbol-append 'reduce x))
+                    REDUCE-NATS->NAT-OPS)))))))
+
+(define (make-grammar-short desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
+        (Fields (map car (cdr desc))))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature ->
+                 (',i GNats ReduceNats->Nat)
+                 (',i ReduceSet->Nat* ReduceNats->Nat))
+        (GNats -> SelectNats
+               (Map GNats ReduceNats->Nat)
+               (Map GSet ReduceSet->Nat))
+      (GSet -> Select
+            (GSet ReduceSet->Set)
+            (GNats ReduceSet->Set))
+      (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
+      (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
+      (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
+      (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
+      (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
+      (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
+
+
+
+(define (make-grammar-full desc table i)
   (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
         (Fields (map car (cdr desc))))
     (CNF->PDA
@@ -113,7 +152,7 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 (define (gen-player-automaton desc table name)
-  (make-grammar desc table name))
+  (make-grammar-micro desc table name))
 
 (define (set-features-to-key features name)
   (map (λ (x) (cons name (cdr x))) features))
@@ -197,7 +236,7 @@ and which determines the meaning for the rows of the final CSV.
 ;; Reduce : ValTree -> ValTree
 (define ((Reduce f) o)
   (match o
-    [(? Value? v) (if (not (list? v)) (f `(,v)) (f v))]
+    [(? Value? v) (if (not (cons? v)) (f `(,v)) (f v))]
     [`(,(? Value? v) ...) (f v)]
     [`(,(? Label? e) ,(? Value? v) ...) (f v)]
     [`(,(? Label? e) . ,(? Value? v)) (f `(,v))]
@@ -208,14 +247,14 @@ and which determines the meaning for the rows of the final CSV.
     [`(,(? Label? e)
        (,(? Label? l) ,(? Value? v) ,vs ...)
        ...)
-     `(,e . ,(map f (map cdr (cdr o))))]
+     `(,e . ,(map (λ (x) (f (cdr x))) (cdr o)))]
     [`(,(? Label? e)
        (,(? Label? l1) ,(? Label? l2) ,(? Value? vs) ...))
      `(,e . ,(f vs))]
     [`(,(? Label? e)
        (,(? Label? l1) ,(? Label? l2) ,(? Value? vs) ...)
        ...)
-     `(,e . ,(map f (map cddr (cdr o))))]
+     `(,e . ,(map (λ (x) (f (cddr x))) (cdr o)))]
     [`(,(? Label? e) . ,T) `(,e . ,((Reduce f) T))]
     [`(,T ...) (map (Reduce f) T)])) 
 
@@ -282,13 +321,12 @@ and which determines the meaning for the rows of the final CSV.
    (λ (x) (map (λ (x) (if (equal? x +inf.0) 9999999 x)) x))
    table))
 
-
-#|
-1032015.ksc.nasa.gov,1,2508.473159,99317214888580944,12542.365797,1179457804470039125445135076391143994403110627418513788456134577524638244013809020625088048594070799228916758321596922998804055100897898775328271771811119887225184444738610069701004227360529741974150020951330506312401484979997608462907084084418546495389696,9999999,5897289022350195627225675381955719972015553137092568942280672887623191220069045103125440242970353996144583791607984614994020275504489493876641358859055599436125922223693050348505021136802648709870750104756652531562007424899988042314535420422092732476948480,138015.6,37481840176318991109718016,690078,3620.399767,9999999,517717.166667,4756448523.86014,9999999,680172138912,4825.72028,9999999,690078,4786.333333,232238736134129352321748855215859255214080,57436,18388802635447378049177619468170671792414102623181179689336039511619522357723372523121778740287627089857194873149603761703366399883385593064122696679970312083662660849106944,9999999,220665631625368522860536113356828631545167633315387721733161873852823449503753551906374978088139420833167057154886135185847774015638911042525496360726356119855895347959169024,57506.5,778631235435087256512516213052311127667532079671803904,690078,2509.374545,2509.374545,2509.374545,9999999,9999999,9999999,690078,690078,690078,55,377395200,275,55,377395200,275,55,377395200,275,55,377395200,275,1.923077,52750291955504401406433398095872,275,1.923077,52750291955504401406433398095872,275,1.923077,52750291955504401406433398095872,275,1.923077,52750291955504401406433398095872,275,22.916667,3352719052800,275,22.916667,3352719052800,275,22.916667,3352719052800,275,22.916667,3352719052800,275,275,275,275,275,275,275,275,275,275,275,275,275,5,143,1,12,5,143,1,12,2509.374545,9999999,690078,275,275,275,275
-|#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; different log data descriptions, readers, tables, keys, and features
 
+
+;;;;;;;;;;;;;;;;;;;;;; DATASET 2
+;; nasa shit with websites idk i just do what jack tells me
 (define NASA-DESC
   '(NASA
     (host symbol #t)
@@ -301,18 +339,44 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-AUTOMATON
   (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
 
-(define NASA-FEATURES (time (take-words NASA-AUTOMATON 1000)))
+#;
+(define NASA-FEATURES (time (take-words NASA-AUTOMATON 100)))
 
+#;
 (define NASA-TABLE
-  (cons (cons 'name(build-list
-         (length NASA-FEATURES)
-         (λ (x) (string->symbol (string-append "F" (number->string x))))))
-        (remove-inf
-   (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES))))
+  `((name . ,(build-list (length NASA-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+    . ,(remove-inf (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES))))
 
-
+;; use display-table expressions to write output to csv file
+#;
 (display-table NASA-TABLE)
 
+;;;;;;;;;;;;;;;;;;;;;; DATASET 2
+;; NASA-edu dataset
+;; "host","bytes","date","time","day"
 
+(define NASA-EDU-DESC
+  '(NASA-EDU
+    (host symbol #t)
+    (bytes number)
+    (date number)
+    (time number)
+    (day string)))
 
+(define NASA-EDU-DATA
+  (time
+   (read-logs
+    NASA-EDU-DESC
+    "../input-automata-csv/nasa-edu-net-first-eighth.csv")))
+(define NASA-EDU-KEYS
+  (time
+   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA)))
+(define NASA-EDU-AUTOMATON
+  (time (gen-player-automaton NASA-EDU-DESC NASA-EDU-DATA (car NASA-EDU-KEYS))))
+(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 100)))
+(define NASA-EDU-TABLE
+  (time
+   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+     . ,(remove-inf (make-table 'NASA-EDU NASA-EDU-KEYS NASA-EDU-DESC NASA-EDU-DATA NASA-EDU-FEATURES)))))
 
+(display-table NASA-EDU-TABLE)
