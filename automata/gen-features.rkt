@@ -367,22 +367,19 @@ and which determines the meaning for the rows of the final CSV.
     (day string)))
 
 (define NASA-EDU-DATA
-  (time
-   (read-logs
+  (read-logs
     NASA-EDU-DESC
-    "../input-automata-csv/small-nasa-edu-net.csv")))
+    "../input-automata-csv/small-nasa-edu-net.csv"))
 (define NASA-EDU-KEYS
-  (time
-   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA)))
+  (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
-  (time (gen-player-automaton NASA-EDU-DESC NASA-EDU-DATA (car NASA-EDU-KEYS))))
-(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 50)))
+  (gen-player-automaton NASA-EDU-DESC NASA-EDU-DATA (car NASA-EDU-KEYS)))
+(define NASA-EDU-FEATURES (take-words NASA-EDU-AUTOMATON 500))
 
 
 (define NASA-EDU-TABLE
-  (time
-   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
-     . ,(remove-inf (make-table 'NASA-EDU NASA-EDU-KEYS NASA-EDU-DESC NASA-EDU-DATA NASA-EDU-FEATURES)))))
+  `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+    . ,(remove-inf (make-table 'NASA-EDU NASA-EDU-KEYS NASA-EDU-DESC NASA-EDU-DATA NASA-EDU-FEATURES))))
 
-
+#;
 (display-table NASA-EDU-TABLE)
