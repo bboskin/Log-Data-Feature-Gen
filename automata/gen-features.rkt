@@ -411,7 +411,7 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
 (define NASA-EDU-FEATURES
-  (take-words NASA-EDU-AUTOMATON 100))
+  (take-words NASA-EDU-AUTOMATON 500))
 (define NASA-EDU-HASH
   (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
