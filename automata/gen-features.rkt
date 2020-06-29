@@ -175,19 +175,24 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
-(define (make-grammar-micro desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc)))))
+;; we can make a recursive one
+(define (make-grammar-new/rec desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
+        (Fields (map car (cdr desc))))
     (CNF->PDA
      (CFG->CNF
-      `((Feature
-         -> (Select ReduceNats->Nat))
-        (Select
-         -> . ,(mapquote (map (λ (x) (symbol-append 'select x))
-                              NatFields)))
-        (ReduceNats->Nat
-         -> . ,(map (λ (x) `',(symbol-append 'reduce x))
-                    REDUCE-NATS->NAT-OPS)))))))
-
+      `((Feature -> (FilterOp* GNats ReduceNats->Nat))
+        (FilterOp* -> ε (FilterOp FilterOp*))
+        (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
+        (GNats -> SelectNats
+               (Map GNats ReduceNats->Nat)
+               (Map GSet ReduceSet->Nat))
+        (GSet -> Select (GSet ReduceSet->Set))
+        (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
+        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
+        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
+        (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
+       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 ;; we can make a new one up
 (define (make-grammar-new desc table i)
@@ -202,8 +207,24 @@ and which determines the meaning for the rows of the final CSV.
         (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
 
 
+
+(define (make-grammar-micro desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc)))))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature
+         -> (Select ReduceNats->Nat))
+        (Select
+         -> . ,(mapquote (map (λ (x) (symbol-append 'select x))
+                              NatFields)))
+        (ReduceNats->Nat
+         -> . ,(map (λ (x) `',(symbol-append 'reduce x))
+                    REDUCE-NATS->NAT-OPS)))))))
+
+
+
 (define (gen-player-automaton desc table name)
-  (make-grammar-new desc table name))
+  (make-grammar-new/rec desc table name))
 
 (define (set-features-to-key features name)
   features)
@@ -404,9 +425,12 @@ and which determines the meaning for the rows of the final CSV.
     (bytes number)
     (time string)
     (day string)))
-
+#;
 (define NASA-DATA (read-logs NASA-DESC "../input-automata-csv/nasa_input.csv"))
+
+#;
 (define NASA-KEYS (foldr (λ (x a) (set-cons (list-ref x 1) a)) '() NASA-DATA))
+#;
 (define NASA-AUTOMATON
   (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
 
@@ -437,7 +461,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-DATA
   (read-logs
     NASA-EDU-DESC
-   "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
+   "../input-automata-csv/small-nasa-edu-net-fivek.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
