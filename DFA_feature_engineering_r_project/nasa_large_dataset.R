@@ -40,8 +40,25 @@ colnames(nasa_edu_net)[7] <- "site_type"
 
 nasa_edu_net <- nasa_edu_net[,c("host", "bytes", "date", "time", "day", "url", "method", "response", "site_type")]
 
+nasa_edu_net<- nasa_edu_net %>%
+  mutate(url_type = 
+           ifelse(grepl(".gif$", nasa_edu_net$url), "gif", 
+                  ifelse(grepl(".html$", nasa_edu_net$url), "html", 
+                         ifelse(grepl(".jpg$", nasa_edu_net$url), "jpg",
+                                ifelse(grepl(".jpeg$", nasa_edu_net$url), "jpg",
+                                    ifelse(grepl(".mpg$", nasa_edu_net$url), "mpg", 
+                                         ifelse(grepl(".xbm$", nasa_edu_net$url), "xbm", 
+                                                ifelse(grepl(".GIF$", nasa_edu_net$url), "gif",
+                                                       ifelse(grepl(".pl$", nasa_edu_net$url), "pl", 
+                                                              ifelse(grepl(".txt$", nasa_edu_net$url), "txt", 
+                                                                     ifelse(grepl(".wav$", nasa_edu_net$url), "wav", "other"))))))))))) 
+nasa_edu_net<-nasa_edu_net %>%
+  mutate(url_type = as.factor(url_type))
 
-
+nasa_edu_net %>% 
+  ggplot(aes(site_type)) +
+  geom_bar() +
+  facet_grid(day~url_type)
 
 
 # Modified dataset --------------------------------------------------------
@@ -70,7 +87,7 @@ nasa_edu_net_filtered %>% ggplot(aes(time, fill = site_type)) +
   facet_grid(~site_type) +
   ggtitle("Time of Request, Faceted by Site Type")
 
-nasa_edu_net_filtered %>% ggplot(aes(day, fill = response)) +
+nasa_edu_net_filtered %>% ggplot(aes(day)) +
   geom_bar() +
   facet_grid(~site_type) +
   ggtitle("Day of Request, Faceted by Site Type")
@@ -115,13 +132,31 @@ nasa_edu_net_fiveK<-
 
 nasa_edu_net_fiveK<-merge(nasa_edu_net_fiveK, nasa_edu_net_filtered, by="host") 
 
-nasa_edu_net_fiveK%>%
-  select(-n) %>%
-  count(site_type)
+nasa_edu_net_fiveK<-
+  nasa_edu_net_fiveK %>%
+  select(-n) 
+
+nasa_edu_net_fiveK %>%
+  count(host)
+
+nasa_edu_net_fiveK<-read_csv("/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/small-nasa-edu-net-fiveK.csv")
+
+#Adding url type
+
+View(semi_join(nasa_edu_net, nasa_edu_net_fiveK, by = "host") %>%
+  select(host, bytes, date, time, day, url_type, site_type) %>%
+  mutate(date = as.numeric(format(as.Date(date), "%j")), 
+         time = as.numeric(substr(time,1, nchar(time)-6)),
+         day = as.factor(day))) %>%
+  ggplot(aes(site_type)) +
+  geom_bar() +
+  facet_grid(day~url_type)
 
 # Writing to csv ----------------------------------------------------------
 
 
 write.csv(nasa_edu_net_filtered[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/nasa-edu-net.csv", row.names = FALSE)
 write.csv(small_nasa_edu_net[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/small-nasa-edu-net.csv", row.names = FALSE)
-write.csv(nasa_edu_net_fiveK)
+write.csv(nasa_edu_net_fiveK[,c(1:5)], "/Users/Jack/Documents/GitHub/Log-Data-Feature-Gen/input-automata-csv/small-nasa-edu-net-fiveK.csv", row.names = FALSE)
+
+
