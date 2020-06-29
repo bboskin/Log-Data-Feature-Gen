@@ -1,3 +1,4 @@
+
 #lang racket
 
 (require
@@ -85,76 +86,73 @@ and which determines the meaning for the rows of the final CSV.
   (length (filter (λ (y) (equal? x y)) xs)))
 
 (define (mode xs)
-  (caar (sort (map (λ (x) (cons x (count-occurrences x xs)))
-                  xs)
-             (λ (x y)
-               (> (cdr x) (cdr y))))))
+  (if (null? xs)
+      0
+      (caar (sort (map (λ (x) (cons x (count-occurrences x xs)))
+                       xs)
+                  (λ (x y)
+                    (> (cdr x) (cdr y)))))))
+
+(define (median xs)
+  (let ((k (length xs))
+        (xs (sort xs <)))
+    (if (null? xs) 0(list-ref xs (floor (/ k 2))))))
+
+(define (mean xs)
+  (if (null? xs) 0 (/ (foldr + 0 xs) (length xs))))
+
+(define (min-ls xs)
+  (if (null? xs) 0 (foldr min 0 xs)))
+
+(define (max-ls xs)
+  (if (null? xs) 0 (foldr max 0 xs)))
+
+(define (to-set xs)
+  (if (null? xs) 0 (foldr max 0 xs)))
+
+(define (mapquote ls) (map (λ (x) `',x) ls))
+
+(define FILTER-FNS
+  `((filtermorning ,(λ (x) (let ((time (list-ref x 4)))
+                             (<= time 12))))
+    (filterevening ,(λ (x) (let ((time (list-ref x 4)))
+                             (>= time 12))))
+    (filterweekday ,(λ (x) (let ((day (list-ref x 5)))
+                             (not (member day '("Saturday" "Sunday"))))))
+    (filterweekend ,(λ (x) (let ((day (list-ref x 5)))
+                             (member day '("Saturday" "Sunday")))))
+    (filterlarge ,(λ (x) (let ((size (list-ref x 2)))
+                           (>= size 10000))))
+    (filtersmall ,(λ (x) (let ((size (list-ref x 2)))
+                           (<= size 1000))))))
+
 
 (define REDUCE-FNS
   `((+ ,(λ (x) (foldr + 0 x)) Nats Nat)
     (* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (max ,(λ (xs)
-             (if (null? xs) 0 (foldr max 0 xs)))
-          Nats Nat)
-    (mean ,(λ (xs)
-             (if (null? xs) 0 (/ (foldr + 0 xs) (length xs))))
-          Nats Nat)
-    (median ,(λ (xs)
-               (let ((k (length xs))
-                     (xs (sort xs <)))
-                 (list-ref xs (floor (/ k 2)))))
-            Nats Nat)
+    (max ,max-ls Nats Nat)
+    (min ,min-ls Nats Nat)
+    (mean ,mean Nats Nat)
+    (median ,median Nats Nat)
     (mode ,mode Nats Nat)    
     (length ,length Set Nat)
-    (set ,(λ (x) (foldr set-cons '() x)) Set Set)))
+    (set ,to-set Set Set)))
 
 (define REDUCE-NATS->NAT-OPS
-  (map car
-       (filter (λ (x) (equal? (cddr x) `(Nats Nat))) REDUCE-FNS)))
+  (map car (filter (λ (x) (equal? (cddr x) `(Nats Nat))) REDUCE-FNS)))
 (define REDUCE-SET->NAT-OPS
-  (map car
-       (filter (λ (x) (equal? (cddr x) `(Set Nat))) REDUCE-FNS)))
+  (map car (filter (λ (x) (equal? (cddr x) `(Set Nat))) REDUCE-FNS)))
 (define REDUCE-SET->SET-OPS
-  (map car
-       (filter (λ (x) (equal? (cddr x) `(Set Set))) REDUCE-FNS)))
+  (map car (filter (λ (x) (equal? (cddr x) `(Set Set))) REDUCE-FNS)))
 
 (define (tag->function t)
   (let ((f (assv t REDUCE-FNS)))
     (if f (cadr f) #f)))
 
-(define (mapquote ls) (map (λ (x) `',x) ls))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; a handful of grammars
-
-(define (make-grammar-micro desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc)))))
-    (CNF->PDA
-     (CFG->CNF
-      `((Feature
-         -> (',i Select ReduceNats->Nat))
-        (Select
-         -> . ,(mapquote (map (λ (x) (symbol-append 'select x))
-                              NatFields)))
-        (ReduceNats->Nat
-         -> . ,(map (λ (x) `',(symbol-append 'reduce x))
-                    REDUCE-NATS->NAT-OPS)))))))
-
-
-(define (make-grammar-short desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
-        (Fields (map car (cdr desc))))
-    (CNF->PDA
-     (CFG->CNF
-      `((Feature ->
-                 (',i GNats ReduceNats->Nat))
-        (GNats -> SelectNats
-               (Map GNats ReduceNats->Nat))
-      (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
-      (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
-      (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
-      (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
-
 
 (define (make-grammar-full desc table i)
   (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
@@ -162,8 +160,8 @@ and which determines the meaning for the rows of the final CSV.
     (CNF->PDA
      (CFG->CNF
       `((Feature ->
-                 (',i GNats ReduceNats->Nat)
-                 (',i GSet ReduceSet->Nat))
+                 (GNats ReduceNats->Nat)
+                 (GSet ReduceSet->Nat))
         (GNats -> SelectNats
                (Map GNats ReduceNats->Nat)
                (Map GSet ReduceSet->Nat))
@@ -177,11 +175,38 @@ and which determines the meaning for the rows of the final CSV.
       (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
       (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
+(define (make-grammar-micro desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc)))))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature
+         -> (Select ReduceNats->Nat))
+        (Select
+         -> . ,(mapquote (map (λ (x) (symbol-append 'select x))
+                              NatFields)))
+        (ReduceNats->Nat
+         -> . ,(map (λ (x) `',(symbol-append 'reduce x))
+                    REDUCE-NATS->NAT-OPS)))))))
+
+
+;; we can make a new one up
+(define (make-grammar-new desc table i)
+  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
+        (Fields (map car (cdr desc))))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature -> (FilterOp* Select ReduceNats->Nat))
+        (FilterOp* -> ε (FilterOp FilterOp*))
+        (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
+        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
+        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
+
+
 (define (gen-player-automaton desc table name)
-  (make-grammar-micro desc table name))
+  (make-grammar-new desc table name))
 
 (define (set-features-to-key features name)
-  (map (λ (x) (cons name (cdr x))) features))
+  features)
 
 
 
@@ -232,9 +257,12 @@ and which determines the meaning for the rows of the final CSV.
 
 
 ;; Filter : Eid x CDRs -> CDRs
-(define ((Filter desc) f t)
-  (let ((k (add1 (get-key-loc desc))))
-    (filter (λ (x) (equal? (list-ref x k) f)) t)))
+(define (Filter f t)
+  (let ((k (assv f FILTER-FNS)))
+    (if k
+        (let ((f (cadr k)))
+          (filter f t))
+        (error (format "unknown function: ~s" f)))))
 
 ;; Map : CDRTree -> CDRTree
 (define ((Map Log desc eid) o)
@@ -289,11 +317,17 @@ and which determines the meaning for the rows of the final CSV.
 
 ;; putting it all together
 
+(define (filterword? x)
+  (and (symbol? x)
+       (let ((x (symbol->string x)))
+         (and (>= (string-length x) 6)
+              (string=? (substring x 0 6) "filter")))))
 (define (reduceword? x)
   (and (symbol? x)
        (let ((x (symbol->string x)))
          (and (>= (string-length x) 6)
               (string=? (substring x 0 6) "reduce")))))
+
 (define (selectword? x)
   (and (symbol? x)
        (let ((x (symbol->string x)))
@@ -317,8 +351,9 @@ and which determines the meaning for the rows of the final CSV.
     [`(,(? reduceword? f) . ,w)
      (let ((f (tag->function (string->symbol (substring (symbol->string f) 6)))))
        ((apply-word Log desc) w ((Reduce f) ls)))]
-    [`(,id . ,w)
-     ((apply-word Log desc) w ((Filter desc) id ls))]
+    [`(,(? filterword? f) . ,w)
+     ((apply-word Log desc) w (Filter f ls))]
+#;[`(,id . ,w) ((apply-word Log desc) w (Filter id ls))]
     [else ((apply-word Log desc) (cdr w) ls)]))
 
 (define (apply-words Log desc Table ws)
@@ -402,7 +437,7 @@ and which determines the meaning for the rows of the final CSV.
 (define NASA-EDU-DATA
   (read-logs
     NASA-EDU-DESC
-   "../input-automata-csv/nasa-edu-net-first-eighth.csv"))
+   "../input-automata-csv/small-nasa-edu-net-fiveK.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
@@ -410,8 +445,7 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DESC
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES
-  (take-words NASA-EDU-AUTOMATON 500))
+(define NASA-EDU-FEATURES (take-words NASA-EDU-AUTOMATON 1000))
 (define NASA-EDU-HASH
   (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
@@ -426,6 +460,7 @@ and which determines the meaning for the rows of the final CSV.
          NASA-EDU-DATA
          NASA-EDU-FEATURES
          NASA-EDU-HASH))))
+
 
 (display-table NASA-EDU-TABLE)
 
