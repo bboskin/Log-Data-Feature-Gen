@@ -258,7 +258,9 @@ and which determines the meaning for the rows of the final CSV.
         (Fields (map car (cdr desc))))
     (CNF->PDA
      (CFG->CNF
-      `((Feature -> (FilterOp Select ReduceNats->Nat))
+      `((Feature ->
+                 (FilterOp Select ReduceNats->Nat)
+                 (Select ReduceNats->Nat))
         (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
         (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
         (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
@@ -516,7 +518,7 @@ and which determines the meaning for the rows of the final CSV.
 #|
 
 ;; non-recursive grammar
-270 features generated,
+270 total features generated (asked for 3000)
 takes less than a second to find, 2 secs to apply.
 
 
@@ -548,7 +550,7 @@ finding features (on 5k dataset)
          NASA-EDU-FEATURES
          NASA-EDU-HASH)))))
 
-#;
+
 (display-table NASA-EDU-TABLE)
 
 
