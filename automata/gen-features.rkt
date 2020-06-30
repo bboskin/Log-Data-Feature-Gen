@@ -108,7 +108,7 @@ and which determines the meaning for the rows of the final CSV.
   (if (null? xs) 0 (foldr max 0 xs)))
 
 (define (to-set xs)
-  (if (null? xs) 0 (foldr set-cons '() xs)))
+  (foldr set-cons '() xs))
 
 (define (mapquote ls) (map (λ (x) `',x) ls))
 
@@ -141,6 +141,22 @@ and which determines the meaning for the rows of the final CSV.
     [(? symbol?) (foldr + 0 (map char->integer (string->list (symbol->string x))))]
     [else 0]))
 
+(define (get-range xs)
+  (let ((min (min-ls xs))
+        (max (min-ls xs)))
+    (- max min)))
+
+(define (k-unique-elems xs)
+  (length (to-set xs)))
+
+(define (std-dev xs)
+  (let ((k (length xs))
+        (xbar (mean xs)))
+    (if (<= k 1)
+        0
+        (sqrt (/ (foldr + 0 (map (λ (x) (sqr (- x xbar))) xs))
+                 (sub1 k))))))
+
 (define REDUCE-FNS
   `((+ ,(λ (x) (foldr + 0 x)) Nats Nat)
     (* ,(λ (x) (foldr * 1 x)) Nats Nat)
@@ -148,12 +164,16 @@ and which determines the meaning for the rows of the final CSV.
     (min ,min-ls Nats Nat)
     (mean ,mean Nats Nat)
     (median ,median Nats Nat)
-    (mode ,mode Nats Nat)    
-    (length ,length Set Nat)
-    (set ,to-set Set Set)
-    (cast ,cast Set Nats)
+    (mode ,mode Nats Nat)
+    (range ,get-range Nats Nat)
+    (std-dev ,std-dev Nats Nat)
     
-    ))
+    (length ,length Set Nat)
+    (k-unique-elems ,k-unique-elems Set Nat)
+    
+    (set ,to-set Set Set)
+    
+    (cast ,cast Set Nats)))
 
 (define REDUCE-NATS->NAT-OPS
   (map car (filter (λ (x) (equal? (cddr x) `(Nats Nat))) REDUCE-FNS)))
@@ -185,15 +205,15 @@ and which determines the meaning for the rows of the final CSV.
         (GNats -> SelectNats
                (Map GNats ReduceNats->Nat)
                (Map GSet ReduceSet->Nat))
-      (GSet -> Select
-            (GSet ReduceSet->Set)
-            (GNats ReduceSet->Set))
-      (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
-      (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
-      (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
-      (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
-      (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
-      (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
+        (GSet -> Select
+              (GSet ReduceSet->Set)
+              (GNats ReduceSet->Set))
+        (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
+        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
+        (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
+        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
+        (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
+        (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS)))))))
 
 #;
 (define (make-grammar-micro desc table i)
@@ -215,8 +235,9 @@ and which determines the meaning for the rows of the final CSV.
         (Fields (map car (cdr desc))))
     (CNF->PDA
      (CFG->CNF
-      `((Feature -> (FilterOp* GNats ReduceNats->Nat))
-        (FilterOp* -> ε (FilterOp FilterOp*))
+      `((Feature ->
+                 (FilterOp GNats ReduceNats->Nat)
+                 (GNats ReduceNats->Nat))
         (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
         (GNats -> SelectNats
                (Map GNats ReduceNats->Nat)
@@ -237,16 +258,13 @@ and which determines the meaning for the rows of the final CSV.
         (Fields (map car (cdr desc))))
     (CNF->PDA
      (CFG->CNF
-      `((Feature -> (FilterOp* Select ReduceNats->Nat))
-        (FilterOp* -> ε (FilterOp FilterOp*))
+      `((Feature -> (FilterOp Select ReduceNats->Nat))
         (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
         (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
         (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
 
-
-
 (define (gen-player-automaton desc table name)
-  (make-grammar-new/rec desc table name))
+  (make-grammar-new desc table name))
 
 (define (set-features-to-key features name)
   features)
@@ -457,7 +475,7 @@ and which determines the meaning for the rows of the final CSV.
   (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
 
 #;
-(define NASA-FEATURES (time (take-words NASA-AUTOMATON 1000)))
+(define NASA-FEATURES (time (take-words NASA-AUTOMATON 3000)))
 
 #;
 (define NASA-TABLE
@@ -492,13 +510,35 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DESC
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES (take-words NASA-EDU-AUTOMATON 2000))
-(define NASA-EDU-HASH
-  (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
+(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 3000)))
+(define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
+#|
+
+;; non-recursive grammar
+270 features generated,
+takes less than a second to find, 2 secs to apply.
+
+
+
+;; recursive grammar
+finding features (on 5k dataset)
+  just finding          | finding / applying)
+  2000 took 3 seconds   | 1 second / 63 seconds
+  3000 took 7 seconds   | 4 seconds /  38 seconds
+  4000 took 12 seconds  | 11 seconds / 56 seconds ?
+  5000 took 13 seconds  | 35 seconds / 124 seconds  ? 
+  6000 took 30 seconds  | 19 seconds / 142 seconds
+  7000 took 24 seconds  | 44 seconds / 88 seconds
+  8000 took 34 seconds  | 38 seconds / 174 seconds
+  9000 took 37 seconds  | 19 seconds / 105 seconds
+  10K  took 59 seconds  | 61 seconds / 153 seconds
+  20K  took 107 seconds | 92 seconds / 219 seconds
+
+|#
 
 (define NASA-EDU-TABLE
-  `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+  (time `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
     . ,(remove-inf
         (make-table
          'NASA-EDU
@@ -506,9 +546,9 @@ and which determines the meaning for the rows of the final CSV.
          NASA-EDU-DESC
          NASA-EDU-DATA
          NASA-EDU-FEATURES
-         NASA-EDU-HASH))))
+         NASA-EDU-HASH)))))
 
-#;
+
 (display-table NASA-EDU-TABLE)
 
 
