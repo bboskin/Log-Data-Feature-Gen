@@ -1,6 +1,10 @@
 
 
-mkdir ~/Desktop/Log-Data-Feature-Gen/output-automata-csv/latest-data
+echo "Generating and applying all features from current micro grammar..."
+
+racket nasa.rkt -1 > ../output-automata-csv/latest-data/micro.csv
+
+echo "All done with micro Grammar!"
 
 echo "Generating and applying all features from current finite grammar..."
 

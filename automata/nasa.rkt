@@ -3,7 +3,7 @@
 
 (define args (current-command-line-arguments))
 (define K (if (zero? (vector-length args))
-              1 ;0
+              -1
               (string->number (vector-ref args 0))))
 
 
@@ -26,8 +26,7 @@
                            (eqv? format 'html))))
     (jpg ,(λ (x) (let ((format (list-ref x 6)))
                            (eqv? format 'jpg))))
-    (otherformat ,(λ (x) (let ((format (list-ref x 6)))
-                                 (not (memv format '(jpg html gif))))))))
+    (otherformat ,(λ (x) (let ((format (list-ref x 6))) (not (memv format '(jpg html gif))))))))
 
 (define REDUCE-FNS
   `(#;(+ ,(λ (x) (foldr + 0 x)) Nats Nat)
@@ -120,6 +119,28 @@
         (ReduceSet->Nat -> . ,REDUCE-SET->NAT-OPS)
         (ReduceSet->Nats -> . ,REDUCE-SET->NATS-OPS))))))
 
+(define (make-grammar-micro desc table i)
+  (let* ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
+         (Fields (map car (cdr desc)))
+         (NonNatFields (set-difference Fields NatFields)))
+    (CNF->PDA
+     (CFG->CNF
+      `((Feature ->
+                 (FilterOp GNats ReduceNats->Nat)
+                 (GNats ReduceNats->Nat))
+        
+        (GNats ->
+               SelectNats
+               (SelectNonNats ReduceSet->Nats))
+        (FilterOp -> . ,FILTER-OPS)
+        (Map -> . ,(MAP-OPS Fields))
+        (SelectNats -> . ,(SELECT-OPS NatFields))
+        (SelectNonNats -> . ,(SELECT-OPS NonNatFields))
+        (Select -> . ,(SELECT-OPS Fields))
+        (ReduceNats->Nat -> . ,REDUCE-NATS->NAT-OPS)
+        (ReduceSet->Nat -> . ,REDUCE-SET->NAT-OPS)
+        (ReduceSet->Nats -> . ,REDUCE-SET->NATS-OPS))))))
+
 (define (gen-player-automaton G desc table name)
   (G desc table name))
 
@@ -139,12 +160,13 @@
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
   (gen-player-automaton
-   (if (zero? K) make-grammar-finite make-grammar-infinite)
+   (if (zero? K) make-grammar-finite (if (= K -1) make-grammar-micro make-grammar-infinite))
    NASA-EDU-DESC
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
 (define NASA-EDU-FEATURES
-  (reverse (take-words NASA-EDU-AUTOMATON (if (zero? K) 20000 (* 1000 K)))))
+  (reverse (take-words NASA-EDU-AUTOMATON
+                       (if (< K 1) 20000 (* 1000 K)))))
 (define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
 #|
