@@ -10,6 +10,17 @@
   csv-reading)
 
 
+(provide (all-defined-out)
+         CNF->PDA
+         CFG->CNF
+         symbol-append
+         set-cons
+         take-words
+         find-words
+         display-table
+         set-difference)
+
+
 (define make-food-csv-reader
   (make-csv-reader-maker
    '((separator-chars            #\,)
@@ -112,28 +123,6 @@ and which determines the meaning for the rows of the final CSV.
 
 (define (mapquote ls) (map (λ (x) `',x) ls))
 
-(define FILTER-FNS
-  `((filtermorning ,(λ (x) (let ((time (list-ref x 4)))
-                             (<= time 12))))
-    (filterevening ,(λ (x) (let ((time (list-ref x 4)))
-                             (>= time 12))))
-    (filterweekday ,(λ (x) (let ((day (list-ref x 5)))
-                             (not (member day '("Saturday" "Sunday"))))))
-    (filterweekend ,(λ (x) (let ((day (list-ref x 5)))
-                             (member day '("Saturday" "Sunday")))))
-    (filterlarge ,(λ (x) (let ((size (list-ref x 2)))
-                           (>= size 10000))))
-    (filtersmall ,(λ (x) (let ((size (list-ref x 2)))
-                           (<= size 1000))))
-    (filtergif ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'gif))))
-    (filterhtml ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'html))))
-    (filterjpg ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'jpg))))
-    (filterotherformat ,(λ (x) (let ((format (list-ref x 6)))
-                                 (not (memv format '(jpg html gif))))))))
-
 (define (cast x)
   (match x
     [(? number?) x]
@@ -157,35 +146,10 @@ and which determines the meaning for the rows of the final CSV.
         (sqrt (/ (foldr + 0 (map (λ (x) (sqr (- x xbar))) xs))
                  (sub1 k))))))
 
-(define REDUCE-FNS
-  `((+ ,(λ (x) (foldr + 0 x)) Nats Nat)
-    (* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (max ,max-ls Nats Nat)
-    (min ,min-ls Nats Nat)
-    (mean ,mean Nats Nat)
-    (median ,median Nats Nat)
-    (mode ,mode Nats Nat)
-    (range ,get-range Nats Nat)
-    (std-dev ,std-dev Nats Nat)
-    
-    (length ,length Set Nat)
-    (k-unique-elems ,k-unique-elems Set Nat)
-    
-    (set ,to-set Set Set)
-    
-    (cast ,cast Set Nats)))
 
-(define REDUCE-NATS->NAT-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Nats Nat))) REDUCE-FNS)))
-(define REDUCE-SET->NAT-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Nat))) REDUCE-FNS)))
-(define REDUCE-SET->NATS-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Nats))) REDUCE-FNS)))
-(define REDUCE-SET->SET-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Set))) REDUCE-FNS)))
 
-(define (tag->function t)
-  (let ((f (assv t REDUCE-FNS)))
+(define (tag->function Reduce t)
+  (let ((f (assv t Reduce)))
     (if f (cadr f) #f)))
 
 
@@ -229,44 +193,7 @@ and which determines the meaning for the rows of the final CSV.
          -> . ,(map (λ (x) `',(symbol-append 'reduce x))
                     REDUCE-NATS->NAT-OPS)))))))
 
-;; we can make a recursive one
-(define (make-grammar-new/rec desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
-        (Fields (map car (cdr desc))))
-    (CNF->PDA
-     (CFG->CNF
-      `((Feature ->
-                 (FilterOp GNats ReduceNats->Nat)
-                 (GNats ReduceNats->Nat))
-        (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
-        (GNats -> SelectNats
-               (Map GNats ReduceNats->Nat)
-               (Map GSet ReduceSet->Nat)
-               (GSet ReduceSet->Nats))
-        (GSet -> Select (GSet ReduceSet->Set))
-        (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
-        (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
-        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
-        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
-        (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
-        (ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS))
-        (ReduceSet->Nats -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NATS-OPS)))))))
 
-;; we can make a new one up
-(define (make-grammar-new desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
-        (Fields (map car (cdr desc))))
-    (CNF->PDA
-     (CFG->CNF
-      `((Feature ->
-                 (FilterOp Select ReduceNats->Nat)
-                 (Select ReduceNats->Nat))
-        (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
-        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
-        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
-
-(define (gen-player-automaton desc table name)
-  (make-grammar-new/rec desc table name))
 
 (define (set-features-to-key features name)
   features)
@@ -320,12 +247,12 @@ and which determines the meaning for the rows of the final CSV.
 
 
 ;; Filter : Eid x CDRs -> CDRs
-(define (Filter f t)
-  (let ((k (assv f FILTER-FNS)))
+(define (Filter k t)
+  (let (#;(k (assv f FILTER-FNS)))
     (if k
         (let ((f (cadr k)))
           (filter f t))
-        (error (format "unknown function: ~s" f)))))
+        (error (format "unknown function: ~s" k)))))
 
 ;; Map : CDRTree -> CDRTree
 (define ((Map Log desc eid) o)
@@ -402,33 +329,32 @@ and which determines the meaning for the rows of the final CSV.
          (and (>= (string-length x) 3)
               (string=? (substring x 0 3) "map")))))
 
-(define ((apply-word Log desc) w ls)
+(define ((apply-word Reduces Filters Log desc) w ls)
   (match w
     ['() ls]
     [`(,(? mapword? f) . ,w)
      (let ((t (string->symbol (substring (symbol->string f) 3))))
-       ((apply-word Log desc) w ((Map Log desc t) ls)))]
+       ((apply-word Reduces Filters Log desc) w ((Map Log desc t) ls)))]
     [`(,(? selectword? f) . ,w)
      (let ((t (string->symbol (substring (symbol->string f) 6))))
-       ((apply-word Log desc) w (((Select Log desc) t) ls)))]
+       ((apply-word Reduces Filters Log desc) w (((Select Log desc) t) ls)))]
     [`(,(? reduceword? f) . ,w)
-     (let ((f (tag->function (string->symbol (substring (symbol->string f) 6)))))
-       ((apply-word Log desc) w ((Reduce f) ls)))]
+     (let ((f (tag->function Reduces (string->symbol (substring (symbol->string f) 6)))))
+       ((apply-word Reduces Filters Log desc) w ((Reduce f) ls)))]
     [`(,(? filterword? f) . ,w)
-     ((apply-word Log desc) w (Filter f ls))]
-    #;[`(,id . ,w) ((apply-word Log desc) w (Filter id ls))]
-    [else ((apply-word Log desc) (cdr w) ls)]))
+     ((apply-word Reduces Filters Log desc) w (Filter (assv f Filters) ls))]
+    [else ((apply-word Reduces Filters Log desc) (cdr w) ls)]))
 
-(define (apply-words Log desc Table ws)
-  (map (λ (x) ((apply-word Log desc) x Table)) ws))
+(define (apply-words Reduces Filters Log desc Table ws)
+  (map (λ (x) ((apply-word Reduces Filters Log desc) x Table)) ws))
 
-(define ((eval desc Table) w) ((apply-word desc) w Table))
+(define ((eval Reduces Filters desc Table) w) ((apply-word Reduces Filters desc) w Table))
 
-(define (make-table log keys desc table features H)
+(define (make-table Reduces Filters log keys desc table features H)
   (map
    (λ (key)
      (let ((fs (set-features-to-key features key)))
-       (cons key (apply-words log desc (hash-ref H key (λ () '())) fs))))
+       (cons key (apply-words Reduces Filters log desc (hash-ref H key (λ () '())) fs))))
    keys))
 
 (define (test-apply-words Log desc Table ws)
@@ -455,103 +381,6 @@ and which determines the meaning for the rows of the final CSV.
             x))
    table))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; different log data descriptions, readers, tables, keys, and features
-
-
-;;;;;;;;;;;;;;;;;;;;;; DATASET 2
-;; nasa shit with websites idk i just do what jack tells me
-(define NASA-DESC
-  '(NASA
-    (host symbol #t)
-    (bytes number)
-    (time string)
-    (day string)))
-#;
-(define NASA-DATA (read-logs NASA-DESC "../input-automata-csv/nasa_input.csv"))
-
-#;
-(define NASA-KEYS (foldr (λ (x a) (set-cons (list-ref x 1) a)) '() NASA-DATA))
-#;
-(define NASA-AUTOMATON
-  (gen-player-automaton NASA-DESC NASA-DATA (car NASA-KEYS)))
-
-#;
-(define NASA-FEATURES (time (take-words NASA-AUTOMATON 3000)))
-
-#;
-(define NASA-TABLE
-  `((name . ,(build-list (length NASA-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
-    . ,(remove-inf (make-table 'NASA NASA-KEYS NASA-DESC NASA-DATA NASA-FEATURES))))
-
-;; use display-table expressions to write output to csv file
-#;
-(display-table NASA-TABLE)
-
-;;;;;;;;;;;;;;;;;;;;;; DATASET 2
-;; NASA-edu dataset
-;; "host","bytes","date","time","day"
-
-(define NASA-EDU-DESC
-  '(NASA-EDU
-    (host symbol #t)
-    (bytes number)
-    (date number)
-    (time number)
-    (day string)
-    (format symbol)))
-
-(define NASA-EDU-DATA
-  (read-logs
-    NASA-EDU-DESC
-   "../input-automata-csv/new/small-nasa-edu-net-fiveK_withURL.csv"))
-(define NASA-EDU-KEYS
-  (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
-(define NASA-EDU-AUTOMATON
-  (gen-player-automaton
-   NASA-EDU-DESC
-   NASA-EDU-DATA
-   (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 5000)))
-(define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
-
-#|
-
-;; non-recursive grammar
-270 total features generated (asked for 3000)
-takes less than a second to find, 2 secs to apply.
-
-
-
-;; recursive grammar
-finding features (on 5k dataset)
-  just finding          | finding / applying)
-  2000 took 3 seconds   | 1 second / 63 seconds
-  3000 took 7 seconds   | 4 seconds /  38 seconds
-  4000 took 12 seconds  | 11 seconds / 56 seconds ?
-  5000 took 13 seconds  | 35 seconds / 124 seconds  ? 
-  6000 took 30 seconds  | 19 seconds / 142 seconds
-  7000 took 24 seconds  | 44 seconds / 88 seconds
-  8000 took 34 seconds  | 38 seconds / 174 seconds
-  9000 took 37 seconds  | 19 seconds / 105 seconds
-  10K  took 59 seconds  | 61 seconds / 153 seconds
-  20K  took 107 seconds | 92 seconds / 219 seconds
-
-|#
-
-(define NASA-EDU-TABLE
-  (time `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
-    . ,(remove-inf
-        (make-table
-         'NASA-EDU
-         NASA-EDU-KEYS
-         NASA-EDU-DESC
-         NASA-EDU-DATA
-         NASA-EDU-FEATURES
-         NASA-EDU-HASH)))))
-
-
-(display-table NASA-EDU-TABLE)
 
 
 
