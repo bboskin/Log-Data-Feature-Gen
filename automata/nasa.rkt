@@ -2,35 +2,29 @@
 (require "gen-features.rkt")
 
 (define args (current-command-line-arguments))
-(define K (if (zero? (vector-length args))
-              -1
-              (string->number (vector-ref args 0))))
+(define K
+  (if (zero? (vector-length args))
+      0
+      (string->number (vector-ref args 0))))
+
 (define FILENAME
   (if (< (vector-length args) 2)
       "../input-automata-csv/5k-with-url.csv"
       (vector-ref args 1)))
 
-
+(define WEEKEND '("Saturday" "Sunday"))
+(define NORMAL-FORMATS '(gif html jpg))
 (define FILTER-FNS
-  `((morning ,(λ (x) (let ((time (list-ref x 4)))
-                             (<= time 12))))
-    (evening ,(λ (x) (let ((time (list-ref x 4)))
-                             (>= time 12))))
-    (weekday ,(λ (x) (let ((day (list-ref x 5)))
-                             (not (member day '("Saturday" "Sunday"))))))
-    (weekend ,(λ (x) (let ((day (list-ref x 5)))
-                             (member day '("Saturday" "Sunday")))))
-    (large ,(λ (x) (let ((size (list-ref x 2)))
-                           (>= size 10000))))
-    (small ,(λ (x) (let ((size (list-ref x 2)))
-                           (<= size 1000))))
-    (gif ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'gif))))
-    (html ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'html))))
-    (jpg ,(λ (x) (let ((format (list-ref x 6)))
-                           (eqv? format 'jpg))))
-    (otherformat ,(λ (x) (let ((format (list-ref x 6))) (not (memv format '(jpg html gif))))))))
+  `((morning ,(λ (x) (<= (list-ref x 4) 12)))
+    (evening ,(λ (x) (>= (list-ref x 4) 12)))
+    (weekday ,(λ (x) (not (member (list-ref x 5) WEEKEND))))
+    (weekend ,(λ (x) (member (list-ref x 5) WEEKEND)))
+    (large ,(λ (x) (>= (list-ref x 2) 10000)))
+    (small ,(λ (x) (<= (list-ref x 2) 1000)))
+    (gif ,(λ (x) (eqv? (list-ref x 6) 'gif)))
+    (html ,(λ (x) (eqv? (list-ref x 6) 'html)))
+    (jpg ,(λ (x) (eqv? (list-ref x 6) 'jpg)))
+    (other ,(λ (x) (not (memv (list-ref x 6) NORMAL-FORMATS))))))
 
 (define REDUCE-FNS
   `(#;(+ ,(λ (x) (foldr + 0 x)) Nats Nat)
@@ -60,7 +54,7 @@
   (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Set Nat)))
                    REDUCE-FNS-FORMATTED))))
 (define REDUCE-SET->NATS-OPS
-  (mapquote(map car (filter (λ (x) (equal? (cddr x) `(Set Nats)))
+  (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Set Nats)))
                    REDUCE-FNS-FORMATTED))))
 (define REDUCE-SET->SET-OPS
   (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Set Set)))
@@ -166,8 +160,7 @@
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
 (define NASA-EDU-FEATURES
-  (reverse (take-words NASA-EDU-AUTOMATON
-                       (if (< K 1) 20000 (* 1000 K)))))
+  (reverse (take-words NASA-EDU-AUTOMATON (if (< K 1) 20000 (* 1000 K)))))
 (define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
 #|
