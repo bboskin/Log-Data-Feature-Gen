@@ -5,6 +5,10 @@
 (define K (if (zero? (vector-length args))
               -1
               (string->number (vector-ref args 0))))
+(define FILENAME
+  (if (< (vector-length args) 2)
+      "../input-automata-csv/5k-with-url.csv"
+      (vector-ref args 1)))
 
 
 (define FILTER-FNS
@@ -131,14 +135,11 @@
         
         (GNats ->
                SelectNats
-               (SelectNonNats ReduceSet->Nats))
+               (Select ReduceSet->Nats))
         (FilterOp -> . ,FILTER-OPS)
-        (Map -> . ,(MAP-OPS Fields))
         (SelectNats -> . ,(SELECT-OPS NatFields))
-        (SelectNonNats -> . ,(SELECT-OPS NonNatFields))
         (Select -> . ,(SELECT-OPS Fields))
         (ReduceNats->Nat -> . ,REDUCE-NATS->NAT-OPS)
-        (ReduceSet->Nat -> . ,REDUCE-SET->NAT-OPS)
         (ReduceSet->Nats -> . ,REDUCE-SET->NATS-OPS))))))
 
 (define (gen-player-automaton G desc table name)
@@ -155,7 +156,7 @@
     (format symbol)))
 
 (define NASA-EDU-DATA
-  (read-logs NASA-EDU-DESC "../input-automata-csv/5k-with-url.csv"))
+  (read-logs NASA-EDU-DESC FILENAME))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
@@ -207,5 +208,5 @@ finding features (on 5k dataset)
          NASA-EDU-DATA
          NASA-EDU-FEATURES
          NASA-EDU-HASH))))
-
+#;
 (display-table NASA-EDU-TABLE)
