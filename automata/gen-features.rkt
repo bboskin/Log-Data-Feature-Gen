@@ -266,7 +266,7 @@ and which determines the meaning for the rows of the final CSV.
         (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS)))))))
 
 (define (gen-player-automaton desc table name)
-  (make-grammar-new desc table name))
+  (make-grammar-new/rec desc table name))
 
 (define (set-features-to-key features name)
   features)
@@ -512,7 +512,7 @@ and which determines the meaning for the rows of the final CSV.
    NASA-EDU-DESC
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 3000)))
+(define NASA-EDU-FEATURES (time (take-words NASA-EDU-AUTOMATON 5000)))
 (define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
 #|
