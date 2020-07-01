@@ -1,4 +1,8 @@
 
+# to run this file, enter: sudo sh ./gen.sh
+# to the command line. The first time you use it in a Termial sessions
+# (or when you edit this file) you'll have to enter your computer's password
+
 
 echo "Generating and applying all features from current micro grammar..."
 
