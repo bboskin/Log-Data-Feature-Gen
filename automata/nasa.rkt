@@ -3,25 +3,25 @@
 
 
 (define FILTER-FNS
-  `((filtermorning ,(λ (x) (let ((time (list-ref x 4)))
+  `((morning ,(λ (x) (let ((time (list-ref x 4)))
                              (<= time 12))))
-    (filterevening ,(λ (x) (let ((time (list-ref x 4)))
+    (evening ,(λ (x) (let ((time (list-ref x 4)))
                              (>= time 12))))
-    (filterweekday ,(λ (x) (let ((day (list-ref x 5)))
+    (weekday ,(λ (x) (let ((day (list-ref x 5)))
                              (not (member day '("Saturday" "Sunday"))))))
-    (filterweekend ,(λ (x) (let ((day (list-ref x 5)))
+    (weekend ,(λ (x) (let ((day (list-ref x 5)))
                              (member day '("Saturday" "Sunday")))))
-    (filterlarge ,(λ (x) (let ((size (list-ref x 2)))
+    (large ,(λ (x) (let ((size (list-ref x 2)))
                            (>= size 10000))))
-    (filtersmall ,(λ (x) (let ((size (list-ref x 2)))
+    (small ,(λ (x) (let ((size (list-ref x 2)))
                            (<= size 1000))))
-    (filtergif ,(λ (x) (let ((format (list-ref x 6)))
+    (gif ,(λ (x) (let ((format (list-ref x 6)))
                            (eqv? format 'gif))))
-    (filterhtml ,(λ (x) (let ((format (list-ref x 6)))
+    (html ,(λ (x) (let ((format (list-ref x 6)))
                            (eqv? format 'html))))
-    (filterjpg ,(λ (x) (let ((format (list-ref x 6)))
+    (jpg ,(λ (x) (let ((format (list-ref x 6)))
                            (eqv? format 'jpg))))
-    (filterotherformat ,(λ (x) (let ((format (list-ref x 6)))
+    (otherformat ,(λ (x) (let ((format (list-ref x 6)))
                                  (not (memv format '(jpg html gif))))))))
 
 (define REDUCE-FNS
@@ -91,7 +91,7 @@
                (SelectNonNats ReduceSet->Nats)
                (Map SelectNats ReduceNats->Nat)
                (Map Select ReduceSet->Nat))
-        (FilterOp -> . ,(mapquote (map car FILTER-FNS)))
+        (FilterOp -> . ,(mapquote (map (λ (x) (symbol-append 'filter (car x))) FILTER-FNS)))
         (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
         (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
         (SelectNonNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) (set-difference Fields NatFields))))
@@ -133,6 +133,8 @@
 270 total features generated (asked for 3000)
 takes less than a second to find, 2 secs to apply.
 
+;; big finite grammar (15k + some features)
+ 26 seconds to find / 167 seconds to apply
 
 
 ;; recursive grammar
@@ -151,9 +153,9 @@ finding features (on 5k dataset)
 
 |#
 
-#;
+
 (define NASA-EDU-TABLE
-  `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
     . ,(remove-inf
         (make-table
          REDUCE-FNS

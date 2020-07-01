@@ -342,7 +342,8 @@ and which determines the meaning for the rows of the final CSV.
      (let ((f (tag->function Reduces (string->symbol (substring (symbol->string f) 6)))))
        ((apply-word Reduces Filters Log desc) w ((Reduce f) ls)))]
     [`(,(? filterword? f) . ,w)
-     ((apply-word Reduces Filters Log desc) w (Filter (assv f Filters) ls))]
+     (let ((f (string->symbol (substring (symbol->string f) 6))))
+       ((apply-word Reduces Filters Log desc) w (Filter (assv f Filters) ls)))]
     [else ((apply-word Reduces Filters Log desc) (cdr w) ls)]))
 
 (define (apply-words Reduces Filters Log desc Table ws)
