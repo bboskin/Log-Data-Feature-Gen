@@ -208,5 +208,5 @@ finding features (on 5k dataset)
          NASA-EDU-DATA
          NASA-EDU-FEATURES
          NASA-EDU-HASH))))
-#;
+
 (display-table NASA-EDU-TABLE)
