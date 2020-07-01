@@ -1,0 +1,5 @@
+
+
+mkdir ~/Desktop/Log-Data-Feature-Gen/output-automata-csv/latest-data
+racket nasa.edu 0 > ../output-automata-csv/latest-data/finite.csv
+racket nasa.edu 5 > ../output-automata-csv/latest-data/5k-features.csv

@@ -346,16 +346,14 @@ and which determines the meaning for the rows of the final CSV.
        ((apply-word Reduces Filters Log desc) w (Filter (assv f Filters) ls)))]
     [else ((apply-word Reduces Filters Log desc) (cdr w) ls)]))
 
-(define (apply-words Reduces Filters Log desc Table ws)
-  (map (λ (x) ((apply-word Reduces Filters Log desc) x Table)) ws))
+(define (apply-words Reduces Filters desc Table ws)
+  (map (λ (x) ((apply-word Reduces Filters (car desc) desc) x Table)) ws))
 
-(define ((eval Reduces Filters desc Table) w) ((apply-word Reduces Filters desc) w Table))
-
-(define (make-table Reduces Filters log keys desc table features H)
+(define (make-table Reduces Filters keys desc table features H)
   (map
    (λ (key)
      (let ((fs (set-features-to-key features key)))
-       (cons key (apply-words Reduces Filters log desc (hash-ref H key (λ () '())) fs))))
+       (cons key (apply-words Reduces Filters desc (hash-ref H key (λ () '())) fs))))
    keys))
 
 (define (test-apply-words Log desc Table ws)

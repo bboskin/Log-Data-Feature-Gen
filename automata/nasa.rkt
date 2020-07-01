@@ -1,6 +1,11 @@
 #lang racket
 (require "gen-features.rkt")
 
+(define args (current-command-line-arguments))
+(define K (if (zero? (vector-length args))
+              1 ;0
+              (string->number (vector-ref args 0))))
+
 
 (define FILTER-FNS
   `((morning ,(λ (x) (let ((time (list-ref x 4)))
@@ -42,15 +47,29 @@
     
     (cast ,cast Set Nats)))
 
+(define REDUCE-FNS-FORMATTED
+  (map (λ (x) `(,(symbol-append 'reduce (car x)) . ,(cdr x)))
+       REDUCE-FNS))
 (define REDUCE-NATS->NAT-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Nats Nat))) REDUCE-FNS)))
+  (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Nats Nat)))
+                   REDUCE-FNS-FORMATTED))))
 (define REDUCE-SET->NAT-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Nat))) REDUCE-FNS)))
+  (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Set Nat)))
+                   REDUCE-FNS-FORMATTED))))
 (define REDUCE-SET->NATS-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Nats))) REDUCE-FNS)))
+  (mapquote(map car (filter (λ (x) (equal? (cddr x) `(Set Nats)))
+                   REDUCE-FNS-FORMATTED))))
 (define REDUCE-SET->SET-OPS
-  (map car (filter (λ (x) (equal? (cddr x) `(Set Set))) REDUCE-FNS)))
+  (mapquote (map car (filter (λ (x) (equal? (cddr x) `(Set Set)))
+                   REDUCE-FNS))))
 
+(define (SELECT-OPS Fields)
+  (mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
+
+(define FILTER-OPS
+  (mapquote (map (λ (x) (symbol-append 'filter (car x))) FILTER-FNS)))
+
+(define (MAP-OPS Fields) (mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
 ;; we can make a recursive one
 (define (make-grammar-infinite desc table i)
   (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
@@ -70,16 +89,17 @@
         (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
         (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
         (SelectNonNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) (set-difference Fields NatFields))))
-        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
-        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
-        (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
-        #;(ReduceSet->Set -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->SET-OPS))
-        (ReduceSet->Nats -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NATS-OPS)))))))
+        (Select -> . ,(SELECT-OPS Fields))
+        (ReduceNats->Nat -> . ,REDUCE-NATS->NAT-OPS)
+        (ReduceSet->Nat -> . ,REDUCE-SET->NAT-OPS)
+        #;(ReduceSet->Set -> . ,REDUCE-SET->SET-OPS)
+        (ReduceSet->Nats -> . ,REDUCE-SET->NATS-OPS))))))
 
-;; we can make a new one up
+;; we can make a new finite one up
 (define (make-grammar-finite desc table i)
-  (let ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
-        (Fields (map car (cdr desc))))
+  (let* ((NatFields (map car (filter (λ (x) (equal? (cadr x) 'number)) (cdr desc))))
+         (Fields (map car (cdr desc)))
+         (NonNatFields (set-difference Fields NatFields)))
     (CNF->PDA
      (CFG->CNF
       `((Feature ->
@@ -91,17 +111,17 @@
                (SelectNonNats ReduceSet->Nats)
                (Map SelectNats ReduceNats->Nat)
                (Map Select ReduceSet->Nat))
-        (FilterOp -> . ,(mapquote (map (λ (x) (symbol-append 'filter (car x))) FILTER-FNS)))
-        (Map -> . ,(mapquote (map (λ (x) (symbol-append 'map x)) Fields)))
-        (SelectNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) NatFields)))
-        (SelectNonNats -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) (set-difference Fields NatFields))))
-        (Select -> . ,(mapquote (map (λ (x) (symbol-append 'select x)) Fields)))
-        (ReduceNats->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-NATS->NAT-OPS))
-        (ReduceSet->Nat -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NAT-OPS))
-        (ReduceSet->Nats -> . ,(map (λ (x) `',(symbol-append 'reduce x)) REDUCE-SET->NATS-OPS)))))))
+        (FilterOp -> . ,FILTER-OPS)
+        (Map -> . ,(MAP-OPS Fields))
+        (SelectNats -> . ,(SELECT-OPS NatFields))
+        (SelectNonNats -> . ,(SELECT-OPS NonNatFields))
+        (Select -> . ,(SELECT-OPS Fields))
+        (ReduceNats->Nat -> . ,REDUCE-NATS->NAT-OPS)
+        (ReduceSet->Nat -> . ,REDUCE-SET->NAT-OPS)
+        (ReduceSet->Nats -> . ,REDUCE-SET->NATS-OPS))))))
 
-(define (gen-player-automaton desc table name)
-  (make-grammar-finite desc table name))
+(define (gen-player-automaton G desc table name)
+  (G desc table name))
 
 
 (define NASA-EDU-DESC
@@ -114,17 +134,17 @@
     (format symbol)))
 
 (define NASA-EDU-DATA
-  (read-logs
-    NASA-EDU-DESC
-   "../input-automata-csv/new/small-nasa-edu-net-fiveK_withURL.csv"))
+  (read-logs NASA-EDU-DESC "../input-automata-csv/5k-with-url.csv"))
 (define NASA-EDU-KEYS
   (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
 (define NASA-EDU-AUTOMATON
   (gen-player-automaton
+   (if (zero? K) make-grammar-finite make-grammar-infinite)
    NASA-EDU-DESC
    NASA-EDU-DATA
    (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES (reverse (take-words NASA-EDU-AUTOMATON 20000)))
+(define NASA-EDU-FEATURES
+  (reverse (take-words NASA-EDU-AUTOMATON (if (zero? K) 20000 (* 1000 K)))))
 (define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
 
 #|
@@ -133,9 +153,9 @@
 270 total features generated (asked for 3000)
 takes less than a second to find, 2 secs to apply.
 
-;; big finite grammar (15k + some features)
+;; big finite grammar (15,708 features)
  26 seconds to find / 167 seconds to apply
-
+ 21                 / 108 seconds to apply
 
 ;; recursive grammar
 finding features (on 5k dataset)
@@ -160,16 +180,10 @@ finding features (on 5k dataset)
         (make-table
          REDUCE-FNS
          FILTER-FNS
-         'NASA-EDU
          NASA-EDU-KEYS
          NASA-EDU-DESC
          NASA-EDU-DATA
          NASA-EDU-FEATURES
          NASA-EDU-HASH))))
-
-
-#;
-
-
 
 (display-table NASA-EDU-TABLE)
