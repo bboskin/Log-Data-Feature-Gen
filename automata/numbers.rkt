@@ -3,7 +3,7 @@
 (require "basics.rkt"
          csv-writing)
 
-(define MAX 5000)
+(define MAX 500)
 
 (define (k-factors x)
   (length
@@ -28,7 +28,7 @@
      (λ (i) (= (* i i i) x))
      (build-list x (λ (x) x))))))
 
-(define ((rem k) x) (if (zero? (remainder x k)) 1 0))
+(define ((rem k) x) (zero? (remainder x k)))
 
 (define (kth-fib x)
   (if (zero? x)
@@ -52,14 +52,9 @@
 
 
 (define COLUMN-FNS
-  (append
-   (list
-    (λ (x) x)
-    kth-fib k-collatz-steps
-    
-    k-int-sqr-roots k-int-cube-roots log sqrt sin
-    k-factors)
-   (build-list MAX (λ (x) (rem (add1 x))))))
+  `(,(λ (x) x)
+    ,k-factors
+    . ,(build-list MAX (λ (x) (rem (add1 x))))))
 
 (display-table
  (cons
