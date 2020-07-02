@@ -3,7 +3,7 @@
 (require "basics.rkt"
          csv-writing)
 
-(define MAX 100)
+(define MAX 5000)
 
 (define (k-factors x)
   (length
