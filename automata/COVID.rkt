@@ -4,32 +4,36 @@
 (define args (current-command-line-arguments))
 (define K
   (if (zero? (vector-length args))
-      -1
+      3
       (string->number (vector-ref args 0))))
 
 (define FILENAME
   (if (< (vector-length args) 2)
-      "../input-automata-csv/5k-with-url.csv"
+      "../covid-input-automata-csv/covid-counties-55k-input.csv"
       (vector-ref args 1)))
 
 (define WEEKEND '("Saturday" "Sunday"))
 (define NORMAL-FORMATS '(gif html jpg))
 (define FILTER-FNS
-  `((morning ,(λ (x) (<= (list-ref x 4) 12)))
-    (evening ,(λ (x) (>= (list-ref x 4) 12)))
-    (weekday ,(λ (x) (not (member (list-ref x 5) WEEKEND))))
-    (weekend ,(λ (x) (member (list-ref x 5) WEEKEND)))
-    (large ,(λ (x) (>= (list-ref x 2) 10000)))
-    (small ,(λ (x) (<= (list-ref x 2) 1000)))
-    (gif ,(λ (x) (eqv? (list-ref x 6) 'gif)))
-    (html ,(λ (x) (eqv? (list-ref x 6) 'html)))
-    (jpg ,(λ (x) (eqv? (list-ref x 6) 'jpg)))
-    (other ,(λ (x) (not (memv (list-ref x 6) NORMAL-FORMATS))))))
+  `((few-deaths ,(λ (x) (<= (list-ref x 4) 40)))
+    (many-deaths ,(λ (x) (>= (list-ref x 4) 40)))
+    (few-cases ,(λ (x) (<= (list-ref x 3) 500)))
+    (many-cases ,(λ (x) (>= (list-ref x 3) 500)))
+
+
+    #;(morning ,(λ (x) (<= (list-ref x 4) 12)))
+    #;(evening ,(λ (x) (>= (list-ref x 4) 12)))
+    #;(weekday ,(λ (x) (not (member (list-ref x 5) WEEKEND))))
+    #;(weekend ,(λ (x) (member (list-ref x 5) WEEKEND)))
+    #;(large ,(λ (x) (>= (list-ref x 2) 10000)))
+    #;(small ,(λ (x) (<= (list-ref x 2) 1000)))
+    #;(gif ,(λ (x) (eqv? (list-ref x 6) 'gif)))
+    #;(html ,(λ (x) (eqv? (list-ref x 6) 'html)))
+    #;(jpg ,(λ (x) (eqv? (list-ref x 6) 'jpg)))
+    #;(other ,(λ (x) (not (memv (list-ref x 6) NORMAL-FORMATS))))))
 
 (define REDUCE-FNS
-  `(#;(+ ,(λ (x) (foldr + 0 x)) Nats Nat)
-    #;(* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (max ,max-ls Nats Nat)
+  `((max ,max-ls Nats Nat)
     (min ,min-ls Nats Nat)
     (mean ,mean Nats Nat)
     (median ,median Nats Nat)
@@ -39,9 +43,6 @@
     
     (length ,length Set Nat)
     (k-unique-elems ,k-unique-elems Set Nat)
-    
-    #;(set ,to-set Set Set)
-    
     (cast ,cast Set Nats)))
 
 (define REDUCE-FNS-FORMATTED
@@ -126,7 +127,6 @@
       `((Feature ->
                  (FilterOp GNats ReduceNats->Nat)
                  (GNats ReduceNats->Nat))
-        
         (GNats ->
                SelectNats
                (Select ReduceSet->Nats))
@@ -140,66 +140,38 @@
   (G desc table name))
 
 
-(define NASA-EDU-DESC
-  '(NASA-EDU
-    (host symbol #t)
-    (bytes number)
+(define COVID-DESC
+  '(COVID
+    (flips number #t)
     (date number)
-    (time number)
-    (day string)
-    (format symbol)))
+    (cases number)
+    (deaths number)))
 
-(define NASA-EDU-DATA
-  (read-logs NASA-EDU-DESC FILENAME))
-(define NASA-EDU-KEYS
-  (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
-(define NASA-EDU-AUTOMATON
+(define COVID-DATA
+  (read-logs COVID-DESC FILENAME))
+(define COVID-KEYS
+  (foldr (λ (x a) (set-cons (cadr x) a)) '() COVID-DATA))
+(define COVID-AUTOMATON
   (gen-player-automaton
    (if (zero? K) make-grammar-finite (if (= K -1) make-grammar-micro make-grammar-infinite))
-   NASA-EDU-DESC
-   NASA-EDU-DATA
-   (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES
-  (reverse (take-words NASA-EDU-AUTOMATON (if (< K 1) 20000 (* 1000 K)))))
-(define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
+   COVID-DESC
+   COVID-DATA
+   (car COVID-KEYS)))
+(define COVID-FEATURES
+  (time (reverse (take-words COVID-AUTOMATON (if (< K 1) 20000 (* 1000 K))))))
+(define COVID-HASH (hash-logs COVID-KEYS 1 COVID-DATA (make-immutable-hash)))
 
-#|
 
-;; non-recursive grammar
-270 total features generated (asked for 3000)
-takes less than a second to find, 2 secs to apply.
-
-;; big finite grammar (15,708 features)
- 26 seconds to find / 167 seconds to apply
- 21                 / 108 seconds to apply
-
-;; recursive grammar
-finding features (on 5k dataset)
-  just finding          | finding / applying)
-  2000 took 3 seconds   | 1 second / 63 seconds
-  3000 took 7 seconds   | 4 seconds /  38 seconds
-  4000 took 12 seconds  | 11 seconds / 56 seconds ?
-  5000 took 13 seconds  | 35 seconds / 124 seconds  ? 
-  6000 took 30 seconds  | 19 seconds / 142 seconds
-  7000 took 24 seconds  | 44 seconds / 88 seconds
-  8000 took 34 seconds  | 38 seconds / 174 seconds
-  9000 took 37 seconds  | 19 seconds / 105 seconds
-  10K  took 59 seconds  | 61 seconds / 153 seconds
-  20K  took 107 seconds | 92 seconds / 219 seconds
-
-|#
-
-#;
-(define NASA-EDU-TABLE
-   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+(define COVID-TABLE
+   (time `((name . ,(build-list (length COVID-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
     . ,(remove-inf
         (make-table
          REDUCE-FNS
          FILTER-FNS
-         NASA-EDU-KEYS
-         NASA-EDU-DESC
-         NASA-EDU-DATA
-         NASA-EDU-FEATURES
-         NASA-EDU-HASH))))
-#;
-(display-table NASA-EDU-TABLE)
+         COVID-KEYS
+         COVID-DESC
+         COVID-DATA
+         COVID-FEATURES
+         COVID-HASH)))))
+
+(display-table COVID-TABLE)

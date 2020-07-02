@@ -126,7 +126,6 @@
       `((Feature ->
                  (FilterOp GNats ReduceNats->Nat)
                  (GNats ReduceNats->Nat))
-        
         (GNats ->
                SelectNats
                (Select ReduceSet->Nats))
@@ -140,8 +139,8 @@
   (G desc table name))
 
 
-(define NASA-EDU-DESC
-  '(NASA-EDU
+(define TWITTER-DESC
+  '(TWITTER
     (host symbol #t)
     (bytes number)
     (date number)
@@ -149,57 +148,31 @@
     (day string)
     (format symbol)))
 
-(define NASA-EDU-DATA
-  (read-logs NASA-EDU-DESC FILENAME))
-(define NASA-EDU-KEYS
-  (foldr (λ (x a) (set-cons (cadr x) a)) '() NASA-EDU-DATA))
-(define NASA-EDU-AUTOMATON
+(define TWITTER-DATA
+  (read-logs TWITTER-DESC FILENAME))
+(define TWITTER-KEYS
+  (foldr (λ (x a) (set-cons (cadr x) a)) '() TWITTER-DATA))
+(define TWITTER-AUTOMATON
   (gen-player-automaton
    (if (zero? K) make-grammar-finite (if (= K -1) make-grammar-micro make-grammar-infinite))
-   NASA-EDU-DESC
-   NASA-EDU-DATA
-   (car NASA-EDU-KEYS)))
-(define NASA-EDU-FEATURES
-  (reverse (take-words NASA-EDU-AUTOMATON (if (< K 1) 20000 (* 1000 K)))))
-(define NASA-EDU-HASH (hash-logs NASA-EDU-KEYS 1 NASA-EDU-DATA (make-immutable-hash)))
-
-#|
-
-;; non-recursive grammar
-270 total features generated (asked for 3000)
-takes less than a second to find, 2 secs to apply.
-
-;; big finite grammar (15,708 features)
- 26 seconds to find / 167 seconds to apply
- 21                 / 108 seconds to apply
-
-;; recursive grammar
-finding features (on 5k dataset)
-  just finding          | finding / applying)
-  2000 took 3 seconds   | 1 second / 63 seconds
-  3000 took 7 seconds   | 4 seconds /  38 seconds
-  4000 took 12 seconds  | 11 seconds / 56 seconds ?
-  5000 took 13 seconds  | 35 seconds / 124 seconds  ? 
-  6000 took 30 seconds  | 19 seconds / 142 seconds
-  7000 took 24 seconds  | 44 seconds / 88 seconds
-  8000 took 34 seconds  | 38 seconds / 174 seconds
-  9000 took 37 seconds  | 19 seconds / 105 seconds
-  10K  took 59 seconds  | 61 seconds / 153 seconds
-  20K  took 107 seconds | 92 seconds / 219 seconds
-
-|#
+   TWITTER-DESC
+   TWITTER-DATA
+   (car TWITTER-KEYS)))
+(define TWITTER-FEATURES
+  (reverse (take-words TWITTER-AUTOMATON (if (< K 1) 20000 (* 1000 K)))))
+(define TWITTER-HASH (hash-logs TWITTER-KEYS 1 TWITTER-DATA (make-immutable-hash)))
 
 #;
-(define NASA-EDU-TABLE
-   `((name . ,(build-list (length NASA-EDU-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+(define TWITTER-TABLE
+   `((name . ,(build-list (length TWITTER-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
     . ,(remove-inf
         (make-table
          REDUCE-FNS
          FILTER-FNS
-         NASA-EDU-KEYS
-         NASA-EDU-DESC
-         NASA-EDU-DATA
-         NASA-EDU-FEATURES
-         NASA-EDU-HASH))))
+         TWITTER-KEYS
+         TWITTER-DESC
+         TWITTER-DATA
+         TWITTER-FEATURES
+         TWITTER-HASH))))
 #;
-(display-table NASA-EDU-TABLE)
+(display-table TWITTER-TABLE)
