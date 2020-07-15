@@ -9,27 +9,31 @@
 
 (define FILENAME
   (if (< (vector-length args) 2)
-      "../input-automata-csv/5k-with-url.csv"
+      "../covid-input-automata-csv/covid-counties-55k-input.csv"
       (vector-ref args 1)))
 
 (define WEEKEND '("Saturday" "Sunday"))
 (define NORMAL-FORMATS '(gif html jpg))
 (define FILTER-FNS
-  `((morning ,(λ (x) (<= (list-ref x 4) 12)))
-    (evening ,(λ (x) (>= (list-ref x 4) 12)))
-    (weekday ,(λ (x) (not (member (list-ref x 5) WEEKEND))))
-    (weekend ,(λ (x) (member (list-ref x 5) WEEKEND)))
-    (large ,(λ (x) (>= (list-ref x 2) 10000)))
-    (small ,(λ (x) (<= (list-ref x 2) 1000)))
-    (gif ,(λ (x) (eqv? (list-ref x 6) 'gif)))
-    (html ,(λ (x) (eqv? (list-ref x 6) 'html)))
-    (jpg ,(λ (x) (eqv? (list-ref x 6) 'jpg)))
-    (other ,(λ (x) (not (memv (list-ref x 6) NORMAL-FORMATS))))))
+  `((few-deaths ,(λ (x) (<= (list-ref x 4) 40)))
+    (many-deaths ,(λ (x) (>= (list-ref x 4) 40)))
+    (few-cases ,(λ (x) (<= (list-ref x 3) 500)))
+    (many-cases ,(λ (x) (>= (list-ref x 3) 500)))
+
+
+    #;(morning ,(λ (x) (<= (list-ref x 4) 12)))
+    #;(evening ,(λ (x) (>= (list-ref x 4) 12)))
+    #;(weekday ,(λ (x) (not (member (list-ref x 5) WEEKEND))))
+    #;(weekend ,(λ (x) (member (list-ref x 5) WEEKEND)))
+    #;(large ,(λ (x) (>= (list-ref x 2) 10000)))
+    #;(small ,(λ (x) (<= (list-ref x 2) 1000)))
+    #;(gif ,(λ (x) (eqv? (list-ref x 6) 'gif)))
+    #;(html ,(λ (x) (eqv? (list-ref x 6) 'html)))
+    #;(jpg ,(λ (x) (eqv? (list-ref x 6) 'jpg)))
+    #;(other ,(λ (x) (not (memv (list-ref x 6) NORMAL-FORMATS))))))
 
 (define REDUCE-FNS
-  `(#;(+ ,(λ (x) (foldr + 0 x)) Nats Nat)
-    #;(* ,(λ (x) (foldr * 1 x)) Nats Nat)
-    (max ,max-ls Nats Nat)
+  `((max ,max-ls Nats Nat)
     (min ,min-ls Nats Nat)
     (mean ,mean Nats Nat)
     (median ,median Nats Nat)
@@ -39,9 +43,6 @@
     
     (length ,length Set Nat)
     (k-unique-elems ,k-unique-elems Set Nat)
-    
-    #;(set ,to-set Set Set)
-    
     (cast ,cast Set Nats)))
 
 (define REDUCE-FNS-FORMATTED
@@ -139,40 +140,38 @@
   (G desc table name))
 
 
-(define TWITTER-DESC
-  '(TWITTER
-    (host symbol #t)
-    (bytes number)
+(define COVID-DESC
+  '(COVID
+    (flips number #t)
     (date number)
-    (time number)
-    (day string)
-    (format symbol)))
+    (cases number)
+    (deaths number)))
 
-(define TWITTER-DATA
-  (read-logs TWITTER-DESC FILENAME))
-(define TWITTER-KEYS
-  (foldr (λ (x a) (set-cons (cadr x) a)) '() TWITTER-DATA))
-(define TWITTER-AUTOMATON
+(define COVID-DATA
+  (read-logs COVID-DESC FILENAME))
+(define COVID-KEYS
+  (foldr (λ (x a) (set-cons (cadr x) a)) '() COVID-DATA))
+(define COVID-AUTOMATON
   (gen-player-automaton
    (if (zero? K) make-grammar-finite (if (= K -1) make-grammar-micro make-grammar-infinite))
-   TWITTER-DESC
-   TWITTER-DATA
-   (car TWITTER-KEYS)))
-(define TWITTER-FEATURES
-  (reverse (take-words TWITTER-AUTOMATON (if (< K 1) 20000 (* 1000 K)))))
-(define TWITTER-HASH (hash-logs TWITTER-KEYS 1 TWITTER-DATA (make-immutable-hash)))
+   COVID-DESC
+   COVID-DATA
+   (car COVID-KEYS)))
+(define COVID-FEATURES
+  (time (reverse (take-words COVID-AUTOMATON (if (< K 1) 20000 (* 1000 K))))))
+(define COVID-HASH (hash-logs COVID-KEYS 1 COVID-DATA (make-immutable-hash)))
 
-#;
-(define TWITTER-TABLE
-   `((name . ,(build-list (length TWITTER-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
+
+(define COVID-TABLE
+   (time `((name . ,(build-list (length COVID-FEATURES) (λ (x) (string->symbol (string-append "F" (number->string x))))))
     . ,(remove-inf
         (make-table
          REDUCE-FNS
          FILTER-FNS
-         TWITTER-KEYS
-         TWITTER-DESC
-         TWITTER-DATA
-         TWITTER-FEATURES
-         TWITTER-HASH))))
+         COVID-KEYS
+         COVID-DESC
+         COVID-DATA
+         COVID-FEATURES
+         COVID-HASH)))))
 #;
-(display-table TWITTER-TABLE)
+(display-table COVID-TABLE)

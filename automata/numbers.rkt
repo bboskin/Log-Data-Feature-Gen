@@ -1,9 +1,9 @@
 #lang racket
 
-(require "basics.rkt"
-         csv-writing)
+(require "basics.rkt" csv-writing)
 
 (define MAX 500)
+
 
 (define (k-factors x)
   (length

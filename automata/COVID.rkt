@@ -4,7 +4,7 @@
 (define args (current-command-line-arguments))
 (define K
   (if (zero? (vector-length args))
-      3
+      -1
       (string->number (vector-ref args 0))))
 
 (define FILENAME
@@ -173,5 +173,5 @@
          COVID-DATA
          COVID-FEATURES
          COVID-HASH)))))
-
+#;
 (display-table COVID-TABLE)
